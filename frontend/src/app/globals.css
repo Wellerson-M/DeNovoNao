@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --bg-top: #2a0710;
+  --bg-mid: #16060b;
+  --bg-bottom: #0d0407;
+  --wine: #7c0116;
+  --wine-soft: #a31a31;
+  --wine-fog: rgba(124, 1, 22, 0.18);
+  --cream: #f8ede7;
+  --muted: #d7bebd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(124, 1, 22, 0.3), transparent 34%),
+    radial-gradient(circle at 85% 15%, rgba(163, 26, 49, 0.18), transparent 24%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 48%, var(--bg-bottom) 100%);
+  color: var(--cream);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+button,
+input,
+textarea {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 120ms ease,
+    color 180ms ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+::selection {
+  background: rgba(163, 26, 49, 0.35);
+  color: #fff;
+}
