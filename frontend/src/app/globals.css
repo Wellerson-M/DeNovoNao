@@ -4,14 +4,67 @@
 
 :root {
   color-scheme: dark;
-  --bg-top: #2a0710;
-  --bg-mid: #16060b;
-  --bg-bottom: #0d0407;
-  --wine: #7c0116;
-  --wine-soft: #a31a31;
-  --wine-fog: rgba(124, 1, 22, 0.18);
-  --cream: #f8ede7;
-  --muted: #d7bebd;
+  --page-bg:
+    radial-gradient(circle at top, rgba(124, 1, 22, 0.24), transparent 30%),
+    radial-gradient(circle at 85% 10%, rgba(185, 48, 74, 0.12), transparent 24%),
+    linear-gradient(180deg, #14070b 0%, #0e0608 48%, #090406 100%);
+  --text: #f7f1ee;
+  --text-soft: #e3d5d3;
+  --muted: #a8898f;
+  --muted-strong: #ccb6b9;
+  --panel: rgba(255, 255, 255, 0.08);
+  --panel-hover: rgba(255, 255, 255, 0.1);
+  --panel-border: rgba(255, 255, 255, 0.11);
+  --panel-shadow: 0 18px 60px rgba(11, 5, 7, 0.22);
+  --hero-bg: linear-gradient(135deg, rgba(124, 1, 22, 0.32), rgba(255, 255, 255, 0.06));
+  --hero-border: rgba(216, 102, 122, 0.34);
+  --hero-shadow: 0 28px 80px rgba(61, 9, 19, 0.35);
+  --field-bg: rgba(16, 9, 12, 0.48);
+  --field-bg-strong: rgba(30, 13, 19, 0.72);
+  --field-border: rgba(255, 255, 255, 0.1);
+  --accent: #7c0116;
+  --accent-strong: #a1182d;
+  --accent-soft: #c95b6d;
+  --accent-contrast: #ffe8ec;
+  --accent-glass: rgba(124, 1, 22, 0.18);
+  --accent-ring: rgba(124, 1, 22, 0.22);
+  --danger-bg: rgba(124, 1, 22, 0.12);
+  --danger-border: rgba(201, 91, 109, 0.22);
+  --danger-text: #f3c6cf;
+  --badge-bg: rgba(124, 1, 22, 0.18);
+  --star: #ffb347;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page-bg:
+    radial-gradient(circle at top, rgba(124, 1, 22, 0.1), transparent 24%),
+    linear-gradient(180deg, #f5eeeb 0%, #efe6e4 48%, #e7dcda 100%);
+  --text: #24171a;
+  --text-soft: #45353a;
+  --muted: #856f75;
+  --muted-strong: #6c5960;
+  --panel: rgba(255, 255, 255, 0.48);
+  --panel-hover: rgba(255, 255, 255, 0.62);
+  --panel-border: rgba(97, 63, 71, 0.1);
+  --panel-shadow: 0 18px 50px rgba(71, 34, 42, 0.1);
+  --hero-bg: linear-gradient(135deg, rgba(124, 1, 22, 0.1), rgba(255, 255, 255, 0.38));
+  --hero-border: rgba(124, 1, 22, 0.12);
+  --hero-shadow: 0 24px 70px rgba(71, 34, 42, 0.12);
+  --field-bg: rgba(255, 255, 255, 0.5);
+  --field-bg-strong: rgba(255, 255, 255, 0.72);
+  --field-border: rgba(97, 63, 71, 0.12);
+  --accent: #7c0116;
+  --accent-strong: #9a1329;
+  --accent-soft: #b5485c;
+  --accent-contrast: #fff4f6;
+  --accent-glass: rgba(124, 1, 22, 0.08);
+  --accent-ring: rgba(124, 1, 22, 0.14);
+  --danger-bg: rgba(124, 1, 22, 0.08);
+  --danger-border: rgba(124, 1, 22, 0.12);
+  --danger-text: #7f1f31;
+  --badge-bg: rgba(124, 1, 22, 0.08);
+  --star: #b86a16;
 }
 
 * {
@@ -25,12 +78,9 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(124, 1, 22, 0.3), transparent 34%),
-    radial-gradient(circle at 85% 15%, rgba(163, 26, 49, 0.18), transparent 24%),
-    linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 48%, var(--bg-bottom) 100%);
-  color: var(--cream);
-  font-family: Georgia, "Times New Roman", serif;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
 }
 
 input,
@@ -54,7 +104,12 @@ button:active {
   transform: scale(0.98);
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
 ::selection {
-  background: rgba(163, 26, 49, 0.35);
+  background: rgba(163, 26, 49, 0.22);
   color: #fff;
 }

@@ -20,3 +20,7 @@ class AvalieitorDB extends Dexie {
 }
 
 export const db = new AvalieitorDB();
+
+export async function deleteLocalReview(clientReviewId: string) {
+  await db.reviews.delete(clientReviewId);
+}

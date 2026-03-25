@@ -97,3 +97,16 @@ export async function createReview(input: ReviewInput, clientReviewId: string) {
   const data = (await response.json()) as ReviewWriteResponse;
   return fromServer(data.item);
 }
+
+export async function removeReview(reviewId: string) {
+  const response = await fetch(`${getApiUrl()}/reviews/${reviewId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not delete review");
+  }
+
+  const data = (await response.json()) as ReviewWriteResponse;
+  return fromServer(data.item);
+}

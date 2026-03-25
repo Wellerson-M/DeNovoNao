@@ -93,3 +93,19 @@ export async function createReviewRecord(payload: ReviewPayload) {
   memoryReviews.unshift(review);
   return review;
 }
+
+export async function deleteReviewRecord(reviewId: string) {
+  if (activeDriver === "mongo") {
+    const deleted = await Review.findByIdAndDelete(reviewId);
+    return deleted;
+  }
+
+  const index = memoryReviews.findIndex((review) => review._id === reviewId);
+
+  if (index === -1) {
+    return null;
+  }
+
+  const [deleted] = memoryReviews.splice(index, 1);
+  return deleted;
+}

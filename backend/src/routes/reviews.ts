@@ -2,6 +2,7 @@ import { Router } from "express";
 import { parseReviewPayload } from "../utils/parse-review.js";
 import {
   createReviewRecord,
+  deleteReviewRecord,
   findReviewByClientId,
   getReviewDriver,
   listReviews,
@@ -40,6 +41,24 @@ reviewsRouter.post("/", async (req, res) => {
     return res.status(201).json({
       storage: getReviewDriver(),
       item: review,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected error";
+    return res.status(400).json({ message });
+  }
+});
+
+reviewsRouter.delete("/:id", async (req, res) => {
+  try {
+    const deleted = await deleteReviewRecord(req.params.id);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    return res.status(200).json({
+      storage: getReviewDriver(),
+      item: deleted,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unexpected error";

@@ -57,44 +57,44 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 rounded-[28px] border border-[#ffffff12] bg-[#ffffff08] p-4 shadow-glow">
+    <form onSubmit={handleSubmit} className="grid gap-5 rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2">
-          <span className="text-sm text-[#e6cfcf]">Nome da lanchonete</span>
+          <span className="text-sm text-[var(--muted-strong)]">Nome do lugar</span>
           <input
             required
             value={form.placeName}
             onChange={(event) => setForm((current) => ({ ...current, placeName: event.target.value }))}
-            className="rounded-2xl border border-[#ffffff14] bg-[#14070b] px-4 py-3 text-sm text-white outline-none placeholder:text-[#9e7f83] focus:border-[#a31a31] focus:shadow-[0_0_0_3px_rgba(163,26,49,0.2)]"
+            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
             placeholder="Ex: Smash do Centro"
           />
         </label>
 
         <label className="grid gap-2">
-          <span className="text-sm text-[#e6cfcf]">Local</span>
+          <span className="text-sm text-[var(--muted-strong)]">Bairro / cidade</span>
           <input
             required
             value={form.locationLabel}
             onChange={(event) => setForm((current) => ({ ...current, locationLabel: event.target.value }))}
-            className="rounded-2xl border border-[#ffffff14] bg-[#14070b] px-4 py-3 text-sm text-white outline-none placeholder:text-[#9e7f83] focus:border-[#a31a31] focus:shadow-[0_0_0_3px_rgba(163,26,49,0.2)]"
-            placeholder="Ex: Mooca, Sao Paulo"
+            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+            placeholder="Ex: Centro, Joinville"
           />
         </label>
       </div>
 
       <div className="grid gap-2">
-        <span className="text-sm text-[#e6cfcf]">Nota geral do casal</span>
-        <div className="grid grid-cols-5 gap-2">
+        <span className="text-sm text-[var(--muted-strong)]">Nota geral</span>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {[1, 2, 3, 4, 5].map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => setForm((current) => ({ ...current, coupleRating: value }))}
               className={clsx(
-                "rounded-2xl border px-3 py-3 text-sm font-medium shadow-sm hover:-translate-y-0.5 focus:outline-none focus:shadow-[0_0_0_3px_rgba(163,26,49,0.25)]",
+                "rounded-2xl border px-3 py-3 text-sm font-medium shadow-sm hover:-translate-y-0.5 focus:outline-none focus:shadow-[0_0_0_3px_var(--accent-ring)]",
                 form.coupleRating === value
-                  ? "border-[#d36375] bg-[#7c0116] text-white shadow-[0_10px_30px_rgba(124,1,22,0.28)]"
-                  : "border-[#ffffff12] bg-[#1a0a0f] text-[#dbc0c2] hover:border-[#a31a31]/70 hover:bg-[#240c13]"
+                  ? "border-[var(--accent-soft)] bg-[var(--accent)] text-white shadow-[0_10px_30px_rgba(124,1,22,0.24)]"
+                  : "border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--text-soft)] hover:border-[var(--accent-soft)]/70 hover:bg-[var(--field-bg-strong)]"
               )}
             >
               {value} estrela{value > 1 ? "s" : ""}
@@ -103,47 +103,49 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
         </div>
       </div>
 
-      <label className="grid gap-2">
-        <span className="text-sm text-[#e6cfcf]">Minha opiniao</span>
-        <textarea
-          rows={4}
-          value={form.myOpinion}
-          onChange={(event) => setForm((current) => ({ ...current, myOpinion: event.target.value }))}
-          className="rounded-2xl border border-[#ffffff14] bg-[#14070b] px-4 py-3 text-sm text-white outline-none placeholder:text-[#9e7f83] focus:border-[#a31a31] focus:shadow-[0_0_0_3px_rgba(163,26,49,0.2)]"
-          placeholder="O que voce achou?"
-        />
-      </label>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="grid gap-2">
+          <span className="text-sm text-[var(--muted-strong)]">Opinião 1</span>
+          <textarea
+            rows={4}
+            value={form.myOpinion}
+            onChange={(event) => setForm((current) => ({ ...current, myOpinion: event.target.value }))}
+            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+            placeholder="O que a primeira pessoa achou?"
+          />
+        </label>
 
-      <label className="grid gap-2">
-        <span className="text-sm text-[#e6cfcf]">Opiniao dela</span>
-        <textarea
-          rows={4}
-          value={form.herOpinion}
-          onChange={(event) => setForm((current) => ({ ...current, herOpinion: event.target.value }))}
-          className="rounded-2xl border border-[#ffffff14] bg-[#14070b] px-4 py-3 text-sm text-white outline-none placeholder:text-[#9e7f83] focus:border-[#a31a31] focus:shadow-[0_0_0_3px_rgba(163,26,49,0.2)]"
-          placeholder="O que ela achou?"
-        />
-      </label>
+        <label className="grid gap-2">
+          <span className="text-sm text-[var(--muted-strong)]">Opinião 2</span>
+          <textarea
+            rows={4}
+            value={form.herOpinion}
+            onChange={(event) => setForm((current) => ({ ...current, herOpinion: event.target.value }))}
+            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+            placeholder="O que a segunda pessoa achou?"
+          />
+        </label>
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
         <label className="grid gap-2">
-          <span className="text-sm text-[#e6cfcf]">Avisos criticos / red flags</span>
+          <span className="text-sm text-[var(--muted-strong)]">Red flags / observações</span>
           <input
             value={redFlagsText}
             onChange={(event) => setRedFlagsText(event.target.value)}
-            className="rounded-2xl border border-[#ffffff14] bg-[#14070b] px-4 py-3 text-sm text-white outline-none placeholder:text-[#9e7f83] focus:border-[#a31a31] focus:shadow-[0_0_0_3px_rgba(163,26,49,0.2)]"
+            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
             placeholder="Separe por virgula"
           />
         </label>
 
         <label className="grid gap-2">
-          <span className="text-sm text-[#e6cfcf]">Data da visita</span>
+          <span className="text-sm text-[var(--muted-strong)]">Data</span>
           <input
             type="date"
             required
             value={form.visitedAt}
             onChange={(event) => setForm((current) => ({ ...current, visitedAt: event.target.value }))}
-            className="rounded-2xl border border-[#ffffff14] bg-[#14070b] px-4 py-3 text-sm text-white outline-none focus:border-[#a31a31] focus:shadow-[0_0_0_3px_rgba(163,26,49,0.2)]"
+            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
           />
         </label>
       </div>
@@ -151,12 +153,12 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           disabled={isSubmitting}
-          className="rounded-full border border-[#d36375] bg-gradient-to-r from-[#7c0116] via-[#951427] to-[#b3293d] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,1,22,0.32)] hover:-translate-y-0.5 hover:brightness-110 focus:outline-none focus:shadow-[0_0_0_4px_rgba(163,26,49,0.28)] disabled:opacity-70"
+          className="rounded-full border border-[var(--accent-soft)] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,1,22,0.22)] hover:-translate-y-0.5 hover:brightness-110 focus:outline-none focus:shadow-[0_0_0_4px_var(--accent-ring)] disabled:opacity-70"
         >
           {isSubmitting ? "Salvando..." : "Salvar avaliacao"}
         </button>
 
-        {message ? <p className="text-sm text-[#d8bdbf]">{message}</p> : null}
+        {message ? <p className="text-sm text-[var(--muted-strong)]">{message}</p> : null}
       </div>
     </form>
   );

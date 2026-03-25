@@ -3,14 +3,14 @@ import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
 
 export const metadata: Metadata = {
-  title: "Avalieitor",
-  description: "PWA offline-first para avaliar lanchonetes em casal.",
+  title: "DeNovoNao",
+  description: "Aplicativo para registrar avaliações e não repetir erros gastronômicos.",
   ...(process.env.NODE_ENV === "production"
     ? {
         manifest: "/manifest.json",
         appleWebApp: {
           capable: true,
-          title: "Avalieitor",
+          title: "DeNovoNao",
           statusBarStyle: "black-translucent" as const,
         },
       }
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ff7a18",
+  themeColor: "#7c0116",
 };
 
 export default function RootLayout({

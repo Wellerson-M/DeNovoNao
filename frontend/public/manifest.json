@@ -1,7 +1,7 @@
 {
-  "name": "Avalieitor",
-  "short_name": "Avalieitor",
-  "description": "App offline-first para avaliar lanchonetes em casal.",
+  "name": "DeNovoNao",
+  "short_name": "DeNovoNao",
+  "description": "Aplicativo para registrar avaliações e não repetir erros gastronômicos.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#12100f",

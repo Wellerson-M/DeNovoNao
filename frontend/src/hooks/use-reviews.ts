@@ -2,9 +2,9 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createReview, fetchReviews } from "@/lib/api/reviews";
+import { createReview, fetchReviews, removeReview } from "@/lib/api/reviews";
 import { generateClientId } from "@/lib/client-id";
-import { db } from "@/lib/offline/db";
+import { db, deleteLocalReview } from "@/lib/offline/db";
 import { mergeReviews } from "@/lib/offline/merge-reviews";
 import { saveReviewOffline, subscribeSync, syncPendingReviews } from "@/lib/offline/sync";
 import { ReviewInput, ReviewRecord } from "@/lib/types";
@@ -74,6 +74,19 @@ export function useReviews(search: string, isOnline: boolean) {
     [isOnline, loadReviews]
   );
 
+  const deleteReview = useCallback(
+    async (review: ReviewRecord) => {
+      if (review.syncStatus && review.clientReviewId) {
+        await deleteLocalReview(review.clientReviewId);
+        return loadReviews();
+      }
+
+      await removeReview(review.id);
+      return loadReviews();
+    },
+    [loadReviews]
+  );
+
   useEffect(() => {
     if (!isOnline) {
       return;
@@ -93,5 +106,6 @@ export function useReviews(search: string, isOnline: boolean) {
     error,
     reload: loadReviews,
     createOrQueueReview,
+    deleteReview,
   };
 }
