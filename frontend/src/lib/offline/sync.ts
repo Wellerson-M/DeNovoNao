@@ -1,5 +1,5 @@
 import { createReview } from "@/lib/api/reviews";
-import { db, type LocalReview } from "./db";
+import { db, type LocalQueuedReview } from "@/lib/offline/db";
 
 type SyncListener = () => void | Promise<void>;
 
@@ -19,31 +19,35 @@ async function notifyListeners() {
   }
 }
 
-export async function syncPendingReviews() {
-  if (typeof navigator !== "undefined" && !navigator.onLine) {
-    return;
-  }
-
-  const pending = await db.reviews.where("status").anyOf("pending", "failed").toArray();
-
-  for (const review of pending) {
-    await db.reviews.update(review.clientReviewId, { status: "syncing" });
-
-    try {
-      await createReview(review, review.clientReviewId);
-      await db.reviews.delete(review.clientReviewId);
-      await notifyListeners();
-    } catch (error) {
-      console.error("Could not sync review", error);
-      await db.reviews.update(review.clientReviewId, { status: "failed" });
-    }
-  }
-}
-
-export async function saveReviewOffline(review: Omit<LocalReview, "status" | "createdAt">) {
-  await db.reviews.put({
+export async function saveReviewOffline(review: Omit<LocalQueuedReview, "createdAt" | "status">) {
+  await db.queuedReviews.put({
     ...review,
     createdAt: new Date().toISOString(),
     status: "pending",
   });
+}
+
+export async function syncPendingReviews(token: string | null) {
+  if (!token) {
+    return;
+  }
+
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return;
+  }
+
+  const pendingReviews = await db.queuedReviews.where("status").anyOf("pending", "failed").toArray();
+
+  for (const review of pendingReviews) {
+    await db.queuedReviews.update(review.localId, { status: "syncing" });
+
+    try {
+      await createReview(review, token);
+      await db.queuedReviews.delete(review.localId);
+      await notifyListeners();
+    } catch (error) {
+      console.error("Could not sync queued review", error);
+      await db.queuedReviews.update(review.localId, { status: "failed" });
+    }
+  }
 }

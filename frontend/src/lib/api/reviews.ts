@@ -1,4 +1,24 @@
-import { ReviewInput, ReviewRecord } from "@/lib/types";
+﻿import type { ReviewInput, ReviewRecord, ReviewsResponse } from "@/lib/types";
+
+type ServerReview = {
+  _id: string;
+  id_casal: string;
+  placeName: string;
+  locationLabel: string;
+  placeRating: number;
+  opinionOne: string;
+  opinionTwo: string;
+  criticalWarnings: string[];
+  isPublic: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ServerReviewsResponse = {
+  items: ServerReview[];
+  meta: ReviewsResponse["meta"];
+};
 
 function getApiUrl() {
   if (process.env.NEXT_PUBLIC_API_URL) {
@@ -12,101 +32,119 @@ function getApiUrl() {
   return "http://localhost:4000/api";
 }
 
-type ServerReview = {
-  _id: string;
-  placeName: string;
-  locationLabel: string;
-  coupleRating: number;
-  myOpinion: string;
-  herOpinion: string;
-  redFlags: string[];
-  visitedAt: string;
-  createdAt: string;
-  updatedAt: string;
-  syncMeta?: {
-    clientReviewId?: string;
-  };
-};
+function authHeaders(token?: string | null): Record<string, string> {
+  if (!token) {
+    return {};
+  }
 
-type ReviewsListResponse = {
-  storage: string;
-  items: ServerReview[];
-};
-
-type ReviewWriteResponse = {
-  storage: string;
-  item: ServerReview;
-};
-
-function fromServer(review: ServerReview): ReviewRecord {
   return {
-    id: String(review._id),
-    placeName: review.placeName,
-    locationLabel: review.locationLabel,
-    coupleRating: review.coupleRating,
-    myOpinion: review.myOpinion,
-    herOpinion: review.herOpinion,
-    redFlags: Array.isArray(review.redFlags) ? review.redFlags : [],
-    visitedAt: review.visitedAt,
-    createdAt: review.createdAt,
-    updatedAt: review.updatedAt,
-    clientReviewId: review.syncMeta?.clientReviewId,
+    Authorization: `Bearer ${token}`,
   };
 }
 
-export async function fetchReviews(query = "") {
-  const params = new URLSearchParams();
+function mapReview(review: ServerReview): ReviewRecord {
+  return {
+    id: review._id,
+    id_casal: review.id_casal,
+    placeName: review.placeName,
+    locationLabel: review.locationLabel,
+    placeRating: review.placeRating,
+    opinionOne: review.opinionOne,
+    opinionTwo: review.opinionTwo,
+    criticalWarnings: Array.isArray(review.criticalWarnings) ? review.criticalWarnings : [],
+    isPublic: review.isPublic,
+    active: review.active,
+    createdAt: review.createdAt,
+    updatedAt: review.updatedAt,
+  };
+}
 
-  if (query.trim()) {
-    params.set("q", query.trim());
+export async function fetchReviews(params: {
+  query?: string;
+  page?: number;
+  token?: string | null;
+}) {
+  const searchParams = new URLSearchParams();
+
+  if (params.query?.trim()) {
+    searchParams.set("q", params.query.trim());
+    searchParams.set("placeName", params.query.trim());
   }
 
-  const suffix = params.toString();
-  const response = await fetch(`${getApiUrl()}/reviews${suffix ? `?${suffix}` : ""}`, {
+  searchParams.set("page", String(params.page ?? 1));
+
+  const response = await fetch(`${getApiUrl()}/reviews?${searchParams.toString()}`, {
     cache: "no-store",
+    headers: {
+      ...authHeaders(params.token),
+    },
   });
 
   if (!response.ok) {
-    throw new Error("Could not load reviews");
+    throw new Error("Não foi possível carregar as avaliações");
   }
 
-  const data = (await response.json()) as ReviewsListResponse;
-  return Array.isArray(data.items) ? data.items.map(fromServer) : [];
+  const data = (await response.json()) as ServerReviewsResponse;
+
+  return {
+    items: Array.isArray(data.items) ? data.items.map(mapReview) : [],
+    meta: data.meta,
+  } satisfies ReviewsResponse;
 }
 
-export async function createReview(input: ReviewInput, clientReviewId: string) {
+export async function createReview(input: ReviewInput, token: string) {
   const response = await fetch(`${getApiUrl()}/reviews`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(token),
     },
-    body: JSON.stringify({
-      ...input,
-      syncMeta: {
-        source: "mobile-pwa",
-        clientReviewId,
-        lastSyncedAt: new Date().toISOString(),
-      },
-    }),
+    body: JSON.stringify(input),
   });
 
   if (!response.ok) {
-    throw new Error("Could not create review");
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Não foi possível criar a avaliação");
   }
 
-  const data = (await response.json()) as ReviewWriteResponse;
-  return fromServer(data.item);
+  const data = (await response.json()) as { item: ServerReview };
+  return mapReview(data.item);
 }
 
-export async function removeReview(reviewId: string) {
+export async function updateReview(reviewId: string, input: Partial<ReviewInput>, token: string) {
   const response = await fetch(`${getApiUrl()}/reviews/${reviewId}`, {
-    method: "DELETE",
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify(input),
   });
 
   if (!response.ok) {
-    throw new Error("Could not delete review");
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Não foi possível editar a avaliação");
   }
 
-  const data = (await response.json()) as ReviewWriteResponse;
-  return fromServer(data.item);
+  const data = (await response.json()) as { item: ServerReview };
+  return mapReview(data.item);
+}
+
+export async function removeReview(reviewId: string, token: string, mode: "soft" | "hard" = "soft") {
+  const response = await fetch(`${getApiUrl()}/reviews/${reviewId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({ mode }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Não foi possível excluir a avaliação");
+  }
+
+  const data = (await response.json()) as { item: ServerReview };
+  return mapReview(data.item);
 }

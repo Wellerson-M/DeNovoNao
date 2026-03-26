@@ -1,30 +1,25 @@
-import { LocalReview } from "@/lib/offline/db";
-import { ReviewRecord } from "@/lib/types";
+import type { LocalQueuedReview } from "@/lib/offline/db";
+import type { ReviewRecord } from "@/lib/types";
 
-export function mergeReviews(serverReviews: ReviewRecord[], localReviews: LocalReview[]) {
-  const pendingMapped: ReviewRecord[] = localReviews.map((review) => ({
-    id: review.clientReviewId,
-    clientReviewId: review.clientReviewId,
+export function mergeReviews(remoteReviews: ReviewRecord[], localReviews: LocalQueuedReview[]) {
+  const queued: ReviewRecord[] = localReviews.map((review) => ({
+    id: review.localId,
+    id_casal: "local-only",
     placeName: review.placeName,
     locationLabel: review.locationLabel,
-    coupleRating: review.coupleRating,
-    myOpinion: review.myOpinion,
-    herOpinion: review.herOpinion,
-    redFlags: review.redFlags,
-    visitedAt: review.visitedAt,
+    placeRating: review.placeRating,
+    opinionOne: review.opinionOne,
+    opinionTwo: review.opinionTwo,
+    criticalWarnings: review.criticalWarnings,
+    isPublic: review.isPublic,
+    active: true,
     createdAt: review.createdAt,
+    updatedAt: review.createdAt,
     syncStatus: review.status,
+    localOnly: true,
   }));
 
-  const knownIds = new Set(
-    serverReviews
-      .map((review) => review.clientReviewId)
-      .filter((value): value is string => Boolean(value))
-  );
-
-  const onlyUnsynced = pendingMapped.filter((review) => !knownIds.has(review.clientReviewId ?? ""));
-
-  return [...onlyUnsynced, ...serverReviews].sort(
-    (a, b) => new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()
+  return [...queued, ...remoteReviews].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
   );
 }

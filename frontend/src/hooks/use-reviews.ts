@@ -1,99 +1,168 @@
-"use client";
+﻿"use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createReview, fetchReviews, removeReview } from "@/lib/api/reviews";
+import { createReview, fetchReviews, removeReview, updateReview } from "@/lib/api/reviews";
 import { generateClientId } from "@/lib/client-id";
-import { db, deleteLocalReview } from "@/lib/offline/db";
+import { db, deleteQueuedReview } from "@/lib/offline/db";
 import { mergeReviews } from "@/lib/offline/merge-reviews";
 import { saveReviewOffline, subscribeSync, syncPendingReviews } from "@/lib/offline/sync";
-import { ReviewInput, ReviewRecord } from "@/lib/types";
+import type { ReviewInput, ReviewRecord, ReviewsMeta } from "@/lib/types";
 
-export function useReviews(search: string, isOnline: boolean) {
+const EMPTY_META: ReviewsMeta = {
+  page: 1,
+  pageSize: 10,
+  total: 0,
+  hasMore: false,
+  averagePlaceRating: null,
+};
+
+export function useReviews(params: {
+  query: string;
+  token: string | null;
+  isOnline: boolean;
+}) {
+  const { isOnline, query, token } = params;
   const [remoteReviews, setRemoteReviews] = useState<ReviewRecord[]>([]);
+  const [meta, setMeta] = useState<ReviewsMeta>(EMPTY_META);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const localReviews = useLiveQuery(
-    () => db.reviews.where("status").anyOf("pending", "syncing", "failed").toArray(),
+    () => db.queuedReviews.where("status").anyOf("pending", "syncing", "failed").toArray(),
     [],
     []
   );
 
-  const loadReviews = useCallback(async () => {
-    if (!isOnline) {
-      setIsLoading(false);
+  const loadPage = useCallback(
+    async (page: number, mode: "replace" | "append") => {
+      try {
+        if (mode === "replace") {
+          setIsLoading(true);
+        } else {
+          setIsLoadingMore(true);
+        }
+
+        const response = await fetchReviews({
+          query,
+          page,
+          token,
+        });
+
+        setMeta(response.meta ?? EMPTY_META);
+        setCurrentPage(page);
+        setError(null);
+
+        setRemoteReviews((current) => {
+          if (mode === "replace") {
+            return response.items;
+          }
+
+          const seen = new Set(current.map((item) => item.id));
+          const nextItems = response.items.filter((item) => !seen.has(item.id));
+          return [...current, ...nextItems];
+        });
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "Erro ao carregar avaliações");
+        if (mode === "replace") {
+          setRemoteReviews([]);
+          setMeta(EMPTY_META);
+        }
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [query, token]
+  );
+
+  const reload = useCallback(async () => {
+    await loadPage(1, "replace");
+  }, [loadPage]);
+
+  const loadMore = useCallback(async () => {
+    if (!meta.hasMore || isLoadingMore) {
       return;
     }
 
-    try {
-      setIsLoading(true);
-      const data = await fetchReviews(search);
-      setRemoteReviews(data);
-      setError(null);
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Erro ao carregar avaliacoes");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isOnline, search]);
+    await loadPage(currentPage + 1, "append");
+  }, [currentPage, isLoadingMore, loadPage, meta.hasMore]);
 
   useEffect(() => {
-    void loadReviews();
-  }, [loadReviews]);
+    void loadPage(1, "replace");
+  }, [loadPage]);
 
   useEffect(() => {
     const unsubscribe = subscribeSync(async () => {
-      await loadReviews();
+      await reload();
     });
 
     return unsubscribe;
-  }, [loadReviews]);
+  }, [reload]);
+
+  useEffect(() => {
+    if (isOnline) {
+      void syncPendingReviews(token).then(() => reload());
+    }
+  }, [isOnline, reload, token]);
 
   const createOrQueueReview = useCallback(
     async (input: ReviewInput) => {
-      const clientReviewId = generateClientId();
+      if (!token) {
+        throw new Error("Faça login para publicar avaliações");
+      }
 
       if (isOnline) {
         try {
-          await createReview(input, clientReviewId);
-          await loadReviews();
+          await createReview(input, token);
+          await reload();
           return { mode: "online" as const };
         } catch (error) {
           console.warn("Falling back to offline queue", error);
         }
       }
 
+      const localId = generateClientId();
       await saveReviewOffline({
         ...input,
-        clientReviewId,
+        localId,
       });
 
       return { mode: "offline" as const };
     },
-    [isOnline, loadReviews]
+    [isOnline, reload, token]
+  );
+
+  const editReview = useCallback(
+    async (reviewId: string, input: Partial<ReviewInput>) => {
+      if (!token) {
+        throw new Error("Faça login para editar avaliações");
+      }
+
+      await updateReview(reviewId, input, token);
+      await reload();
+    },
+    [reload, token]
   );
 
   const deleteReview = useCallback(
-    async (review: ReviewRecord) => {
-      if (review.syncStatus && review.clientReviewId) {
-        await deleteLocalReview(review.clientReviewId);
-        return loadReviews();
+    async (review: ReviewRecord, mode: "soft" | "hard" = "soft") => {
+      if (review.localOnly) {
+        await deleteQueuedReview(review.id);
+        return reload();
       }
 
-      await removeReview(review.id);
-      return loadReviews();
+      if (!token) {
+        throw new Error("Faça login para excluir avaliações");
+      }
+
+      await removeReview(review.id, token, mode);
+      await reload();
     },
-    [loadReviews]
+    [reload, token]
   );
-
-  useEffect(() => {
-    if (!isOnline) {
-      return;
-    }
-
-    void syncPendingReviews().then(() => loadReviews());
-  }, [isOnline, loadReviews]);
 
   const reviews = useMemo(
     () => mergeReviews(remoteReviews, localReviews ?? []),
@@ -102,10 +171,15 @@ export function useReviews(search: string, isOnline: boolean) {
 
   return {
     reviews,
+    meta,
     isLoading,
+    isLoadingMore,
     error,
-    reload: loadReviews,
+    reload,
+    loadMore,
     createOrQueueReview,
+    editReview,
     deleteReview,
   };
 }
+

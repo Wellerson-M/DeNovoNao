@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
+import { ConnectionProvider, useConnection } from "@/contexts/connection-context";
 import { syncPendingReviews } from "@/lib/offline/sync";
 
 async function clearLegacyOfflineCaches() {
@@ -23,7 +25,10 @@ async function clearLegacyOfflineCaches() {
   }
 }
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+function ProvidersRuntime({ children }: { children: React.ReactNode }) {
+  const { session } = useAuth();
+  const { isOnline } = useConnection();
+
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
       if ("serviceWorker" in navigator) {
@@ -33,16 +38,20 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       void clearLegacyOfflineCaches();
     }
 
-    const handleOnline = () => {
-      void syncPendingReviews();
-    };
-
-    window.addEventListener("online", handleOnline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-    };
-  }, []);
+    if (isOnline) {
+      void syncPendingReviews(session?.token ?? null);
+    }
+  }, [isOnline, session?.token]);
 
   return <>{children}</>;
+}
+
+export function AppProviders({ children }: { children: React.ReactNode }) {
+  return (
+    <ConnectionProvider>
+      <AuthProvider>
+        <ProvidersRuntime>{children}</ProvidersRuntime>
+      </AuthProvider>
+    </ConnectionProvider>
+  );
 }

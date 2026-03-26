@@ -7,4 +7,5 @@ export const env = {
   mongoUri: process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/avalieitor",
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:3000,http://127.0.0.1:3000",
   storageMode: process.env.STORAGE_MODE ?? "auto",
+  jwtSecret: process.env.JWT_SECRET ?? "change-me",
 };
