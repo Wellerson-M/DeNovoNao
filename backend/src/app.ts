@@ -1,6 +1,8 @@
 import cors from "cors";
 import express from "express";
 import { env } from "./config/env.js";
+import { adminRouter } from "./routes/admin.js";
+import { authRouter } from "./routes/auth.js";
 import { reviewsRouter } from "./routes/reviews.js";
 
 export const app = express();
@@ -31,4 +33,6 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
 app.use("/api/reviews", reviewsRouter);

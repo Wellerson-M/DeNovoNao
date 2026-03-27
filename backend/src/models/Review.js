@@ -7,6 +7,16 @@ const reviewSchema = new Schema(
       required: true,
       index: true,
     },
+    createdByUserId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    createdByName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     placeName: {
       type: String,
       required: true,
@@ -38,6 +48,12 @@ const reviewSchema = new Schema(
     criticalWarnings: {
       type: [String],
       default: [],
+    },
+    visitedAt: {
+      type: Date,
+      required: true,
+      default: Date.now,
+      index: true,
     },
     isPublic: {
       type: Boolean,

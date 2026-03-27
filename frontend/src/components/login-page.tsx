@@ -1,26 +1,51 @@
 ﻿"use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, Wifi, WifiOff } from "lucide-react";
+import clsx from "clsx";
+import { KeyRound, UserPlus, Wifi, WifiOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
+import { loginUser, registerUser } from "@/lib/api/auth";
+
+type AuthMode = "login" | "register";
 
 export function LoginPage() {
   const router = useRouter();
   const { loginAsVisitor, loginWithToken } = useAuth();
   const { isOnline } = useConnection();
-  const [token, setToken] = useState("");
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const headline = useMemo(
+    () =>
+      mode === "login"
+        ? "Entre e continue registrando o que vale e o que não vale repetir."
+        : "Crie sua conta e comece a montar o histórico gastronômico do seu jeito.",
+    [mode]
+  );
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
 
     try {
-      loginWithToken(token);
+      const response =
+        mode === "login"
+          ? await loginUser({ email, password })
+          : await registerUser({ name, email, password });
+
+      loginWithToken(response.token);
       router.push("/");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Não foi possível entrar");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -44,33 +69,89 @@ export function LoginPage() {
             </div>
 
             <h1 className="mt-8 text-4xl font-semibold tracking-tight text-[var(--text)] sm:text-5xl">
-              Faça login e continue registrando o que vale — e o que não vale — repetir.
+              {headline}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--text-soft)]">
-              Nesta etapa, o login está preparado para receber um JWT já emitido pelo backend. O token define papel, id do casal e libera o feed privado.
+              O login agora conversa com a API real. Depois de autenticar, o app recebe o JWT, identifica o perfil do usuário e libera feed privado, moderação e sincronização conforme o papel.
             </p>
           </section>
 
           <section className="rounded-[32px] border border-[var(--panel-border)] bg-[var(--panel)] p-5 shadow-[var(--panel-shadow)] backdrop-blur-xl sm:p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--accent-soft)]/25 bg-[var(--accent-glass)] text-[var(--accent-contrast)]">
-                <KeyRound className="h-5 w-5" />
+                {mode === "login" ? <KeyRound className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[var(--text)]">Entrar no app</h2>
-                <p className="text-sm text-[var(--muted-strong)]">Cole seu JWT para autenticar a sessão.</p>
+                <h2 className="text-lg font-semibold text-[var(--text)]">
+                  {mode === "login" ? "Entrar no app" : "Criar conta"}
+                </h2>
+                <p className="text-sm text-[var(--muted-strong)]">
+                  {mode === "login"
+                    ? "Use seu email e senha para recuperar a sessão."
+                    : "O cadastro já cria um usuário de nível 1 pronto para uso."}
+                </p>
               </div>
             </div>
 
+            <div className="mt-6 grid grid-cols-2 gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] p-1">
+              {[
+                { key: "login" as const, label: "Entrar" },
+                { key: "register" as const, label: "Criar conta" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setMode(tab.key);
+                    setError(null);
+                  }}
+                  className={clsx(
+                    "rounded-full px-4 py-2 text-sm font-medium transition",
+                    mode === tab.key
+                      ? "bg-[var(--accent)] text-white shadow-[0_8px_20px_rgba(124,1,22,0.18)]"
+                      : "text-[var(--text-soft)]"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             <form onSubmit={handleSubmit} className="mt-6 grid gap-4">
+              {mode === "register" ? (
+                <label className="grid gap-2">
+                  <span className="text-sm text-[var(--muted-strong)]">Nome</span>
+                  <input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                    placeholder="Seu nome"
+                    required
+                  />
+                </label>
+              ) : null}
+
               <label className="grid gap-2">
-                <span className="text-sm text-[var(--muted-strong)]">JWT</span>
-                <textarea
-                  rows={7}
-                  value={token}
-                  onChange={(event) => setToken(event.target.value)}
+                <span className="text-sm text-[var(--muted-strong)]">Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-                  placeholder="Cole aqui o token JWT"
+                  placeholder="voce@exemplo.com"
+                  required
+                />
+              </label>
+
+              <label className="grid gap-2">
+                <span className="text-sm text-[var(--muted-strong)]">Senha</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                  placeholder="Mínimo de 6 caracteres"
+                  required
                 />
               </label>
 
@@ -83,9 +164,10 @@ export function LoginPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="submit"
-                  className="rounded-full border border-[var(--accent-soft)] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,1,22,0.22)] hover:-translate-y-0.5"
+                  disabled={isSubmitting}
+                  className="rounded-full border border-[var(--accent-soft)] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,1,22,0.22)] hover:-translate-y-0.5 disabled:opacity-70"
                 >
-                  Entrar com token
+                  {isSubmitting ? "Enviando..." : mode === "login" ? "Entrar" : "Criar conta"}
                 </button>
 
                 <button
@@ -106,4 +188,3 @@ export function LoginPage() {
     </main>
   );
 }
-

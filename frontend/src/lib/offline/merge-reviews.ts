@@ -11,8 +11,11 @@ export function mergeReviews(remoteReviews: ReviewRecord[], localReviews: LocalQ
     opinionOne: review.opinionOne,
     opinionTwo: review.opinionTwo,
     criticalWarnings: review.criticalWarnings,
+    visitedAt: review.visitedAt ?? review.createdAt,
     isPublic: review.isPublic,
     active: true,
+    createdByUserId: null,
+    createdByName: null,
     createdAt: review.createdAt,
     updatedAt: review.createdAt,
     syncStatus: review.status,
@@ -20,6 +23,8 @@ export function mergeReviews(remoteReviews: ReviewRecord[], localReviews: LocalQ
   }));
 
   return [...queued, ...remoteReviews].sort(
-    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    (left, right) =>
+      new Date(right.visitedAt || right.createdAt).getTime() -
+      new Date(left.visitedAt || left.createdAt).getTime()
   );
 }

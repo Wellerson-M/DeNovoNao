@@ -1,8 +1,37 @@
 import mongoose from "mongoose";
 import { env } from "./env.js";
 import { setReviewDriver } from "../data/review-store.js";
+// @ts-ignore
+import { Review } from "../models/Review.js";
 
 let isConnected = false;
+
+const LEGACY_REVIEW_INDEXES = [
+  "syncMeta.clientReviewId_1",
+  "tags_1",
+  "visitedAt_1",
+  "placeName_text_locationLabel_text_redFlags_text",
+];
+
+async function cleanupLegacyReviewIndexes() {
+  const database = mongoose.connection.db;
+  if (!database) {
+    return;
+  }
+
+  const collection = database.collection("reviews");
+  const indexes = await collection.indexes();
+  const indexNames = new Set(indexes.map((index) => index.name));
+
+  for (const indexName of LEGACY_REVIEW_INDEXES) {
+    if (indexNames.has(indexName)) {
+      await collection.dropIndex(indexName);
+      console.warn(`Dropped legacy review index: ${indexName}`);
+    }
+  }
+
+  await Review.syncIndexes();
+}
 
 export async function connectMongo() {
   if (env.storageMode === "memory") {
@@ -20,6 +49,7 @@ export async function connectMongo() {
     await mongoose.connect(env.mongoUri, {
       serverSelectionTimeoutMS: 4000,
     });
+    await cleanupLegacyReviewIndexes();
     isConnected = true;
     setReviewDriver("mongo");
     return mongoose.connection;

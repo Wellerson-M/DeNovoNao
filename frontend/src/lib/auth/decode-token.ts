@@ -1,11 +1,11 @@
-import type { AuthRole, AuthSession } from "@/lib/types";
+﻿import type { AuthRole, AuthSession } from "@/lib/types";
 
 type JwtPayload = {
   sub?: string;
   id?: string;
   email?: string;
   role?: number;
-  id_casal?: string | null;
+  id_casal?: string | number | null;
 };
 
 function decodeBase64Url(value: string) {
@@ -34,10 +34,7 @@ export function decodeTokenToSession(token: string): AuthSession {
     token,
     userId,
     role,
-    id_casal:
-      typeof payload.id_casal === "string" && payload.id_casal.trim()
-        ? payload.id_casal.trim()
-        : null,
+    id_casal: payload.id_casal == null ? null : String(payload.id_casal).trim() || null,
     email: typeof payload.email === "string" ? payload.email : undefined,
   };
 }

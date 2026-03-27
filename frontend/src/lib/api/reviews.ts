@@ -9,8 +9,12 @@ type ServerReview = {
   opinionOne: string;
   opinionTwo: string;
   criticalWarnings: string[];
+  visitedAt: string;
   isPublic: boolean;
   active: boolean;
+  createdByUserId?: string | null;
+  createdByName?: string | null;
+  publisherLabel?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -52,8 +56,12 @@ function mapReview(review: ServerReview): ReviewRecord {
     opinionOne: review.opinionOne,
     opinionTwo: review.opinionTwo,
     criticalWarnings: Array.isArray(review.criticalWarnings) ? review.criticalWarnings : [],
+    visitedAt: review.visitedAt,
     isPublic: review.isPublic,
     active: review.active,
+    createdByUserId: typeof review.createdByUserId === "string" ? review.createdByUserId : null,
+    createdByName: typeof review.createdByName === "string" ? review.createdByName : null,
+    publisherLabel: typeof review.publisherLabel === "string" ? review.publisherLabel : null,
     createdAt: review.createdAt,
     updatedAt: review.updatedAt,
   };
@@ -62,13 +70,17 @@ function mapReview(review: ServerReview): ReviewRecord {
 export async function fetchReviews(params: {
   query?: string;
   page?: number;
+  rating?: number | null;
   token?: string | null;
 }) {
   const searchParams = new URLSearchParams();
 
   if (params.query?.trim()) {
     searchParams.set("q", params.query.trim());
-    searchParams.set("placeName", params.query.trim());
+  }
+
+  if (params.rating && params.rating >= 1 && params.rating <= 5) {
+    searchParams.set("rating", String(params.rating));
   }
 
   searchParams.set("page", String(params.page ?? 1));

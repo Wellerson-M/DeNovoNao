@@ -19,10 +19,11 @@ const EMPTY_META: ReviewsMeta = {
 
 export function useReviews(params: {
   query: string;
+  rating: number | null;
   token: string | null;
   isOnline: boolean;
 }) {
-  const { isOnline, query, token } = params;
+  const { isOnline, query, rating, token } = params;
   const [remoteReviews, setRemoteReviews] = useState<ReviewRecord[]>([]);
   const [meta, setMeta] = useState<ReviewsMeta>(EMPTY_META);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,6 +48,7 @@ export function useReviews(params: {
 
         const response = await fetchReviews({
           query,
+          rating,
           page,
           token,
         });
@@ -75,7 +77,7 @@ export function useReviews(params: {
         setIsLoadingMore(false);
       }
     },
-    [query, token]
+    [query, rating, token]
   );
 
   const reload = useCallback(async () => {
@@ -120,6 +122,15 @@ export function useReviews(params: {
           await reload();
           return { mode: "online" as const };
         } catch (error) {
+          const isNetworkFailure =
+            error instanceof TypeError ||
+            (error instanceof Error &&
+              /fetch|network|failed to fetch|load failed/i.test(error.message));
+
+          if (!isNetworkFailure) {
+            throw error;
+          }
+
           console.warn("Falling back to offline queue", error);
         }
       }

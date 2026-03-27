@@ -5,6 +5,7 @@ type ReviewBody = {
   opinionOne?: unknown;
   opinionTwo?: unknown;
   criticalWarnings?: unknown;
+  visitedAt?: unknown;
   isPublic?: unknown;
 };
 
@@ -20,6 +21,15 @@ function asWarnings(value: unknown) {
   return value.map((item) => asString(item)).filter(Boolean);
 }
 
+function asDate(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export function parseCreateReviewInput(input: ReviewBody) {
   const placeName = asString(input.placeName);
   const locationLabel = asString(input.locationLabel);
@@ -27,18 +37,19 @@ export function parseCreateReviewInput(input: ReviewBody) {
   const opinionTwo = asString(input.opinionTwo);
   const placeRating = Number(input.placeRating);
   const criticalWarnings = asWarnings(input.criticalWarnings);
+  const visitedAt = asDate(input.visitedAt) ?? new Date();
   const isPublic = typeof input.isPublic === "boolean" ? input.isPublic : false;
 
   if (!placeName) {
-    throw new Error("placeName is required");
+    throw new Error("Informe o nome do local.");
   }
 
   if (!locationLabel) {
-    throw new Error("locationLabel is required");
+    throw new Error("Informe a localização do local.");
   }
 
   if (!Number.isFinite(placeRating) || placeRating < 1 || placeRating > 5) {
-    throw new Error("placeRating must be between 1 and 5");
+    throw new Error("A nota do local precisa estar entre 1 e 5.");
   }
 
   return {
@@ -48,6 +59,7 @@ export function parseCreateReviewInput(input: ReviewBody) {
     opinionOne,
     opinionTwo,
     criticalWarnings,
+    visitedAt,
     isPublic,
     active: true,
   };
@@ -59,7 +71,7 @@ export function parseUpdateReviewInput(input: ReviewBody) {
   if (input.placeName !== undefined) {
     const placeName = asString(input.placeName);
     if (!placeName) {
-      throw new Error("placeName cannot be empty");
+      throw new Error("O nome do local não pode ficar vazio.");
     }
     patch.placeName = placeName;
   }
@@ -67,7 +79,7 @@ export function parseUpdateReviewInput(input: ReviewBody) {
   if (input.locationLabel !== undefined) {
     const locationLabel = asString(input.locationLabel);
     if (!locationLabel) {
-      throw new Error("locationLabel cannot be empty");
+      throw new Error("A localização não pode ficar vazia.");
     }
     patch.locationLabel = locationLabel;
   }
@@ -75,7 +87,7 @@ export function parseUpdateReviewInput(input: ReviewBody) {
   if (input.placeRating !== undefined) {
     const placeRating = Number(input.placeRating);
     if (!Number.isFinite(placeRating) || placeRating < 1 || placeRating > 5) {
-      throw new Error("placeRating must be between 1 and 5");
+      throw new Error("A nota do local precisa estar entre 1 e 5.");
     }
     patch.placeRating = placeRating;
   }
@@ -92,15 +104,23 @@ export function parseUpdateReviewInput(input: ReviewBody) {
     patch.criticalWarnings = asWarnings(input.criticalWarnings);
   }
 
+  if (input.visitedAt !== undefined) {
+    const visitedAt = asDate(input.visitedAt);
+    if (!visitedAt) {
+      throw new Error("A data da visita precisa ser válida.");
+    }
+    patch.visitedAt = visitedAt;
+  }
+
   if (input.isPublic !== undefined) {
     if (typeof input.isPublic !== "boolean") {
-      throw new Error("isPublic must be boolean");
+      throw new Error("O campo de privacidade está inválido.");
     }
     patch.isPublic = input.isPublic;
   }
 
   if (Object.keys(patch).length === 0) {
-    throw new Error("No valid fields to update");
+    throw new Error("Nenhum campo válido foi enviado para atualização.");
   }
 
   return patch;
@@ -110,7 +130,7 @@ export function parseDeleteMode(input: { mode?: unknown }) {
   const mode = typeof input.mode === "string" ? input.mode.trim().toLowerCase() : "soft";
 
   if (mode !== "soft" && mode !== "hard") {
-    throw new Error("mode must be soft or hard");
+    throw new Error("O modo de exclusão precisa ser soft ou hard.");
   }
 
   return mode as "soft" | "hard";

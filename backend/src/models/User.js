@@ -22,12 +22,12 @@ const userSchema = new Schema(
     role: {
       type: Number,
       enum: [0, 1, 2],
-      default: 0,
+      default: 1,
       index: true,
     },
     id_casal: {
       type: String,
-      default: null,
+      default: () => new mongoose.Types.ObjectId().toString(),
       index: true,
     },
     active: {

@@ -1,13 +1,12 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
-  Edit3,
   LoaderCircle,
   LogOut,
   MapPin,
@@ -29,6 +28,22 @@ import { useReviews } from "@/hooks/use-reviews";
 import type { ReviewInput, ReviewRecord } from "@/lib/types";
 
 type ThemeMode = "dark" | "light";
+
+type ReviewGroup = {
+  key: string;
+  placeName: string;
+  locationLabel: string;
+  primary: ReviewRecord;
+  reviews: ReviewRecord[];
+};
+
+function getReviewSortTime(review: ReviewRecord) {
+  return new Date(review.visitedAt || review.createdAt).getTime();
+}
+
+function formatVisitedDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value));
+}
 
 function Stars({ value }: { value: number }) {
   return (
@@ -62,74 +77,73 @@ function useThemeMode() {
   return { theme, toggleTheme };
 }
 
-function ReviewCard({
+function canManageReview(review: ReviewRecord, session: ReturnType<typeof useAuth>["session"]) {
+  if (review.localOnly) {
+    return true;
+  }
+
+  if (!session) {
+    return false;
+  }
+
+  if (session.role >= 2) {
+    return true;
+  }
+
+  return Boolean(session.id_casal && session.id_casal === review.id_casal);
+}
+
+function SingleReview({
   review,
+  canDelete,
   onDelete,
-  onEdit,
   isDeleting,
 }: {
   review: ReviewRecord;
+  canDelete: boolean;
   onDelete: (review: ReviewRecord) => Promise<void>;
-  onEdit: (review: ReviewRecord) => void;
   isDeleting: boolean;
 }) {
   return (
-    <article className="rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl">
+    <article className="rounded-[24px] border border-[var(--field-border)] bg-[var(--field-bg)] p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-lg font-semibold tracking-tight text-[var(--text)]">{review.placeName}</h3>
             {review.syncStatus ? (
               <span className="rounded-full border border-[var(--danger-border)] bg-[var(--danger-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--danger-text)]">
                 Não postado, aguardando conexão
               </span>
             ) : null}
             {!review.isPublic ? (
-              <span className="rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted-strong)]">
+              <span className="rounded-full border border-[var(--field-border)] bg-[var(--panel)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted-strong)]">
                 Privado
               </span>
             ) : null}
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-[var(--muted-strong)]">
-            <MapPin className="h-4 w-4" />
-            <span className="truncate">{review.locationLabel}</span>
-          </div>
-
           <Stars value={review.placeRating} />
         </div>
 
-        <div className="flex items-center gap-2">
-          {!review.localOnly ? (
-            <button
-              type="button"
-              onClick={() => onEdit(review)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--muted-strong)] hover:border-[var(--accent-soft)] hover:text-[var(--text)]"
-              aria-label="Editar avaliação"
-            >
-              <Edit3 className="h-4 w-4" />
-            </button>
-          ) : null}
-
+        {canDelete ? (
           <button
             type="button"
             onClick={() => void onDelete(review)}
             disabled={isDeleting}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--muted-strong)] hover:border-[var(--danger-border)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)] disabled:opacity-50"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--field-border)] bg-[var(--panel)] text-[var(--muted-strong)] hover:border-[var(--danger-border)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger-text)] disabled:opacity-50"
             aria-label="Excluir avaliação"
           >
             <Trash2 className="h-4 w-4" />
           </button>
-        </div>
+        ) : null}
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4">
+        <div className="rounded-3xl border border-[var(--field-border)] bg-[var(--panel)] p-4">
           <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Opinião 1</p>
           <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">{review.opinionOne || "Sem comentário."}</p>
         </div>
 
-        <div className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4">
+        <div className="rounded-3xl border border-[var(--field-border)] bg-[var(--panel)] p-4">
           <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">Opinião 2</p>
           <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">{review.opinionTwo || "Sem comentário."}</p>
         </div>
@@ -143,9 +157,9 @@ function ReviewCard({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {review.criticalWarnings.map((flag) => (
+            {review.criticalWarnings.map((flag, index) => (
               <span
-                key={flag}
+                key={`${flag}-${index}`}
                 className="rounded-full border border-[var(--danger-border)] bg-[var(--badge-bg)] px-3 py-1 text-xs text-[var(--danger-text)]"
               >
                 {flag}
@@ -155,10 +169,81 @@ function ReviewCard({
         </div>
       ) : null}
 
-      <div className="mt-4 text-xs text-[var(--muted)]">
-        {new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(
-          new Date(review.createdAt)
-        )}
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--muted)]">
+        <span>Visita em {formatVisitedDate(review.visitedAt)}</span>
+        {review.isPublic && review.publisherLabel ? (
+          <span>Publicado por: {review.publisherLabel}</span>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function ReviewGroupCard({
+  group,
+  expanded,
+  onToggle,
+  onDelete,
+  deletingId,
+  session,
+}: {
+  group: ReviewGroup;
+  expanded: boolean;
+  onToggle: () => void;
+  onDelete: (review: ReviewRecord) => Promise<void>;
+  deletingId: string | null;
+  session: ReturnType<typeof useAuth>["session"];
+}) {
+  const hasMore = group.reviews.length > 1;
+
+  return (
+    <article className="rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-lg font-semibold tracking-tight text-[var(--text)]">{group.placeName}</h3>
+            <span className="rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted-strong)]">
+              {group.reviews.length} visita{group.reviews.length > 1 ? "s" : ""}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-[var(--muted-strong)]">
+            <MapPin className="h-4 w-4" />
+            <span className="truncate">{group.locationLabel}</span>
+          </div>
+        </div>
+
+        {hasMore ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-2 text-xs font-medium text-[var(--text-soft)]"
+          >
+            {expanded ? "Ocultar outras avaliações" : `Ver outras avaliações (${group.reviews.length - 1})`}
+            <ChevronDown className={clsx("h-4 w-4 transition-transform", expanded && "rotate-180")} />
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mt-4 grid gap-4">
+        <SingleReview
+          review={group.primary}
+          canDelete={canManageReview(group.primary, session)}
+          onDelete={onDelete}
+          isDeleting={deletingId === group.primary.id}
+        />
+
+        {expanded
+          ? group.reviews.slice(1).map((review) => (
+              <SingleReview
+                key={review.id}
+                review={review}
+                canDelete={canManageReview(review, session)}
+                onDelete={onDelete}
+                isDeleting={deletingId === review.id}
+              />
+            ))
+          : null}
       </div>
     </article>
   );
@@ -168,10 +253,11 @@ export function HomePage() {
   const { isOnline } = useConnection();
   const { session, logout } = useAuth();
   const [query, setQuery] = useState("");
+  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [editingReview, setEditingReview] = useState<ReviewRecord | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const { theme, toggleTheme } = useThemeMode();
 
   const {
@@ -183,13 +269,62 @@ export function HomePage() {
     reload,
     loadMore,
     createOrQueueReview,
-    editReview,
     deleteReview,
   } = useReviews({
     query,
+    rating: ratingFilter,
     token: session?.token ?? null,
     isOnline,
   });
+
+  const groupedReviews = useMemo<ReviewGroup[]>(() => {
+    const groups = new Map<string, ReviewGroup>();
+
+    const sorted = [...reviews].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    for (const review of sorted) {
+      const key = `${review.placeName.toLowerCase()}::${review.locationLabel.toLowerCase()}`;
+      const current = groups.get(key);
+
+      if (!current) {
+        groups.set(key, {
+          key,
+          placeName: review.placeName,
+          locationLabel: review.locationLabel,
+          primary: review,
+          reviews: [review],
+        });
+        continue;
+      }
+
+      current.reviews.push(review);
+    }
+
+    return Array.from(groups.values())
+      .map((group) => {
+        const ordered = [...group.reviews].sort(
+          (a, b) => {
+            const aOwnUser = session?.userId && a.createdByUserId === session.userId ? 1 : 0;
+            const bOwnUser = session?.userId && b.createdByUserId === session.userId ? 1 : 0;
+
+            if (aOwnUser !== bOwnUser) {
+              return bOwnUser - aOwnUser;
+            }
+
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          }
+        );
+
+        return {
+          ...group,
+          primary: ordered[0],
+          reviews: ordered,
+        };
+      })
+      .sort((a, b) => new Date(b.primary.createdAt).getTime() - new Date(a.primary.createdAt).getTime());
+  }, [reviews, session?.userId]);
 
   async function handleRefresh() {
     setIsRefreshing(true);
@@ -210,15 +345,8 @@ export function HomePage() {
   }
 
   async function handleSubmit(input: ReviewInput) {
-    if (editingReview && !editingReview.localOnly) {
-      await editReview(editingReview.id, input);
-      setEditingReview(null);
-      setIsComposerOpen(false);
-      return;
-    }
-
     const result = await createOrQueueReview(input);
-    if (result.mode === "online") {
+    if (result?.mode === "online") {
       setIsComposerOpen(false);
     }
     return result;
@@ -235,10 +363,10 @@ export function HomePage() {
               <div className="max-w-3xl">
                 <p className="text-xs uppercase tracking-[0.34em] text-[var(--muted)]">DeNovoNao</p>
                 <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--text)] sm:text-5xl">
-                  Feed de visitas e histórico gastronômico.
+                  Registre avaliações e não repita erros gastronômicos.
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--text-soft)] sm:text-base">
-                  Pesquise lanchonetes, acompanhe a linha do tempo das visitas e salve novas avaliações mesmo quando a conexão cair.
+                  Um histórico pessoal para lembrar o que vale repetir, o que decepcionou e o que merece atenção antes do próximo pedido.
                 </p>
               </div>
 
@@ -262,14 +390,24 @@ export function HomePage() {
                   </Link>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Sair
-                </button>
+                {session ? (
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair
+                  </button>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Entrar
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -279,7 +417,7 @@ export function HomePage() {
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Buscar pelo nome da lanchonete"
+                  placeholder="Pesquisar por nome ou local"
                   className="w-full bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
                 />
               </label>
@@ -307,16 +445,36 @@ export function HomePage() {
                 </button>
               </div>
             </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">Filtrar por nota</span>
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRatingFilter((current) => (current === value ? null : value))}
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded-full border px-3 py-2 text-xs font-medium transition",
+                    ratingFilter === value
+                      ? "border-[var(--accent-soft)] bg-[var(--accent-glass)] text-[var(--text)]"
+                      : "border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--muted-strong)]"
+                  )}
+                >
+                  <Star className={clsx("h-3.5 w-3.5", ratingFilter === value && "fill-current")} />
+                  {value}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
         {searchTitle ? (
           <section className="rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel)] px-5 py-5 shadow-[var(--panel-shadow)] backdrop-blur-xl">
-            <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Local pesquisado</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-[var(--muted)]">Resultado da busca</p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-2xl font-semibold tracking-tight text-[var(--text)]">{searchTitle}</h2>
               <div className="rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
-                Média geral pública:{" "}
+                Média geral pública: {" "}
                 <span className="font-semibold text-[var(--text)]">
                   {meta.averagePlaceRating !== null ? meta.averagePlaceRating.toFixed(1) : "Sem média ainda"}
                 </span>
@@ -337,13 +495,9 @@ export function HomePage() {
                 <Plus className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text)]">
-                  {editingReview ? "Editar avaliação" : "Adicionar avaliação"}
-                </p>
+                <p className="text-sm font-semibold text-[var(--text)]">Adicionar avaliação</p>
                 <p className="text-xs text-[var(--muted-strong)]">
-                  {editingReview
-                    ? "Ajuste o conteúdo da visita selecionada."
-                    : "Crie uma nova visita e ela entra na linha do tempo automaticamente."}
+                  Cada novo envio entra como uma nova visita na linha do tempo do mesmo restaurante.
                 </p>
               </div>
             </div>
@@ -361,11 +515,7 @@ export function HomePage() {
           >
             <div className="overflow-hidden">
               <div className="border-t border-[var(--panel-border)] px-4 pb-4 pt-4 sm:px-5">
-                <ReviewForm
-                  initialValue={editingReview}
-                  onCancelEdit={() => setEditingReview(null)}
-                  onSubmit={handleSubmit}
-                />
+                <ReviewForm onSubmit={handleSubmit} />
               </div>
             </div>
           </div>
@@ -392,17 +542,21 @@ export function HomePage() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-2">
-          {reviews.map((review) => (
-            <ReviewCard
-              key={review.id}
-              review={review}
-              onEdit={(selected) => {
-                setEditingReview(selected);
-                setIsComposerOpen(true);
-              }}
+        <div className="grid gap-4">
+          {groupedReviews.map((group) => (
+            <ReviewGroupCard
+              key={group.key}
+              group={group}
+              expanded={Boolean(expandedGroups[group.key])}
+              onToggle={() =>
+                setExpandedGroups((current) => ({
+                  ...current,
+                  [group.key]: !current[group.key],
+                }))
+              }
               onDelete={handleDelete}
-              isDeleting={deletingId === review.id}
+              deletingId={deletingId}
+              session={session}
             />
           ))}
         </div>
@@ -418,7 +572,7 @@ export function HomePage() {
           </button>
         ) : null}
 
-        {!isLoading && reviews.length === 0 ? (
+        {!isLoading && groupedReviews.length === 0 ? (
           <section className="rounded-[28px] border border-dashed border-[var(--panel-border)] bg-[var(--panel)] px-5 py-10 text-center shadow-[var(--panel-shadow)]">
             <p className="text-lg font-medium text-[var(--text)]">Nenhuma avaliação ainda.</p>
             <p className="mt-2 text-sm text-[var(--muted-strong)]">
@@ -430,4 +584,3 @@ export function HomePage() {
     </main>
   );
 }
-
