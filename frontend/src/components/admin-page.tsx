@@ -1,10 +1,11 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { CalendarDays, LoaderCircle, Search, ShieldAlert, Trash2, UserRoundCog } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useUi } from "@/contexts/ui-context";
 import {
   fetchAdminReviews,
   fetchAdminUserReviews,
@@ -97,6 +98,7 @@ function DetailReviewCard({
 
 export function AdminPage() {
   const { session } = useAuth();
+  const { showLoaderFor } = useUi();
   const [tab, setTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
@@ -116,6 +118,7 @@ export function AdminPage() {
   const [userQuery, setUserQuery] = useState("");
   const [reviewQuery, setReviewQuery] = useState("");
   const [selectedUserReviewQuery, setSelectedUserReviewQuery] = useState("");
+  const detailsRef = useRef<HTMLDivElement | null>(null);
 
   const tabs = useMemo(
     () => [
@@ -290,6 +293,16 @@ export function AdminPage() {
     );
   }, [sortedReviews]);
 
+  useEffect(() => {
+    if (!selectedReviewId || !detailsRef.current || typeof window === "undefined") {
+      return;
+    }
+
+    if (window.innerWidth < 1280) {
+      detailsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedReviewId]);
+
   if (!session || session.role < 2) {
     return (
       <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text)]">
@@ -307,7 +320,7 @@ export function AdminPage() {
               </div>
             </div>
 
-            <Link href="/" className="mt-6 inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
+            <Link href="/" onClick={() => showLoaderFor(420)} className="mt-6 inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
               Voltar ao feed
             </Link>
           </section>
@@ -330,7 +343,7 @@ export function AdminPage() {
               </p>
             </div>
 
-            <Link href="/" className="inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
+            <Link href="/" onClick={() => showLoaderFor(420)} className="inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
               Voltar ao feed
             </Link>
           </div>
@@ -555,7 +568,7 @@ export function AdminPage() {
                 ) : null}
               </div>
 
-              <div className="grid gap-4 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4 xl:sticky xl:top-6 xl:self-start">
+              <div ref={detailsRef} className="grid gap-4 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4 xl:sticky xl:top-6 xl:self-start">
                 <h2 className="text-lg font-semibold">
                   {selectedReview ? `Detalhes de ${selectedReview.placeName}` : "Selecione uma avaliação"}
                 </h2>

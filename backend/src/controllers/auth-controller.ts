@@ -101,6 +101,7 @@ export async function registerController(request: Request, response: Response) {
 
     const token = signAuthToken({
       userId: String(user._id),
+      name: user.name,
       email: user.email,
       role: user.role,
       id_casal: user.id_casal == null ? null : String(user.id_casal),
@@ -136,6 +137,7 @@ export async function loginController(request: Request, response: Response) {
 
     const token = signAuthToken({
       userId: String(user._id),
+      name: user.name,
       email: user.email,
       role: user.role,
       id_casal: user.id_casal == null ? null : String(user.id_casal),

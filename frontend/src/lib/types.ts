@@ -5,6 +5,7 @@ export type AuthSession = {
   userId: string;
   role: AuthRole;
   id_casal: string | null;
+  name?: string;
   email?: string;
 };
 

@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
+import { useUi } from "@/contexts/ui-context";
 import type { ReviewInput } from "@/lib/types";
 
 const emptyForm: ReviewInput = {
@@ -20,6 +21,7 @@ type ReviewFormProps = {
 };
 
 export function ReviewForm({ onSubmit }: ReviewFormProps) {
+  const { withLoader } = useUi();
   const [form, setForm] = useState<ReviewInput>(emptyForm);
   const [warningsText, setWarningsText] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -32,13 +34,16 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
     setMessage(null);
 
     try {
-      const result = await onSubmit({
-        ...form,
-        criticalWarnings: warningsText
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
-      });
+      const result = await withLoader(
+        onSubmit({
+          ...form,
+          criticalWarnings: warningsText
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        }),
+        420
+      );
 
       setMessage(
         result?.mode === "offline"
@@ -165,7 +170,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
         <div>
           <p className="text-sm font-medium text-[var(--text)]">Privado</p>
           <p className="mt-1 text-xs text-[var(--muted-strong)]">
-            Quando ativado, a avaliação fica visível só para o seu casal.
+            Quando ativado, a avaliação fica visível só para o seu você.
           </p>
         </div>
 
@@ -202,4 +207,3 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
     </form>
   );
 }
-

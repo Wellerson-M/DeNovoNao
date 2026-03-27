@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { KeyRound, UserPlus, Wifi, WifiOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
+import { useUi } from "@/contexts/ui-context";
 import { loginUser, registerUser } from "@/lib/api/auth";
 
 type AuthMode = "login" | "register";
@@ -14,6 +15,7 @@ export function LoginPage() {
   const router = useRouter();
   const { loginAsVisitor, loginWithToken } = useAuth();
   const { isOnline } = useConnection();
+  const { showLoaderFor, withLoader } = useUi();
   const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -37,10 +39,11 @@ export function LoginPage() {
     try {
       const response =
         mode === "login"
-          ? await loginUser({ email, password })
-          : await registerUser({ name, email, password });
+          ? await withLoader(loginUser({ email, password }), 520)
+          : await withLoader(registerUser({ name, email, password }), 520);
 
       loginWithToken(response.token);
+      showLoaderFor(520);
       router.push("/");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Não foi possível entrar");
@@ -72,7 +75,7 @@ export function LoginPage() {
               {headline}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--text-soft)]">
-              O login agora conversa com a API real. Depois de autenticar, o app recebe o JWT, identifica o perfil do usuário e libera feed privado, moderação e sincronização conforme o papel.
+              Entre com sua conta para registrar e acompanhar suas avaliações
             </p>
           </section>
 
@@ -173,6 +176,7 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => {
+                    showLoaderFor(420);
                     loginAsVisitor();
                     router.push("/");
                   }}

@@ -25,6 +25,7 @@ import { ReviewForm } from "@/components/review-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
 import { useReviews } from "@/hooks/use-reviews";
+import { useUi } from "@/contexts/ui-context";
 import type { ReviewInput, ReviewRecord } from "@/lib/types";
 
 type ThemeMode = "dark" | "light";
@@ -252,6 +253,7 @@ function ReviewGroupCard({
 export function HomePage() {
   const { isOnline } = useConnection();
   const { session, logout } = useAuth();
+  const { showLoaderFor, withLoader } = useUi();
   const [query, setQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -329,7 +331,7 @@ export function HomePage() {
   async function handleRefresh() {
     setIsRefreshing(true);
     try {
-      await reload();
+      await withLoader(reload(), 420);
     } finally {
       setIsRefreshing(false);
     }
@@ -373,7 +375,10 @@ export function HomePage() {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={toggleTheme}
+                  onClick={() => {
+                    showLoaderFor(260);
+                    toggleTheme();
+                  }}
                   className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)] hover:-translate-y-0.5"
                 >
                   {theme === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
@@ -383,6 +388,7 @@ export function HomePage() {
                 {session?.role === 2 ? (
                   <Link
                     href="/admin"
+                    onClick={() => showLoaderFor(420)}
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]"
                   >
                     <Shield className="h-4 w-4" />
@@ -391,17 +397,26 @@ export function HomePage() {
                 ) : null}
 
                 {session ? (
-                  <button
-                    type="button"
-                    onClick={logout}
-                    className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sair
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
+                      {session.name ?? session.email ?? "Usuário"}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showLoaderFor(320);
+                        logout();
+                      }}
+                      className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sair
+                    </button>
+                  </div>
                 ) : (
                   <Link
                     href="/login"
+                    onClick={() => showLoaderFor(420)}
                     className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]"
                   >
                     <LogOut className="h-4 w-4" />
@@ -446,24 +461,28 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2">
               <span className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">Filtrar por nota</span>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setRatingFilter((current) => (current === value ? null : value))}
-                  className={clsx(
-                    "inline-flex items-center gap-1 rounded-full border px-3 py-2 text-xs font-medium transition",
-                    ratingFilter === value
-                      ? "border-[var(--accent-soft)] bg-[var(--accent-glass)] text-[var(--text)]"
-                      : "border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--muted-strong)]"
-                  )}
-                >
-                  <Star className={clsx("h-3.5 w-3.5", ratingFilter === value && "fill-current")} />
-                  {value}
-                </button>
-              ))}
+              <div className="-mx-1 overflow-x-auto pb-1">
+                <div className="flex min-w-max items-center gap-2 px-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRatingFilter((current) => (current === value ? null : value))}
+                      className={clsx(
+                        "inline-flex items-center gap-1 rounded-full border px-3 py-2 text-xs font-medium transition",
+                        ratingFilter === value
+                          ? "border-[var(--accent-soft)] bg-[var(--accent-glass)] text-[var(--text)]"
+                          : "border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--muted-strong)]"
+                      )}
+                    >
+                      <Star className={clsx("h-3.5 w-3.5", ratingFilter === value && "fill-current")} />
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
