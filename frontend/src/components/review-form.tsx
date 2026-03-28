@@ -1,4 +1,5 @@
 ﻿"use client";
+/* cSpell:disable */
 
 import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
