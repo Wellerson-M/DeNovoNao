@@ -29,6 +29,11 @@ const reviewSchema = new Schema(
       trim: true,
       index: true,
     },
+    isDelivery: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     placeRating: {
       type: Number,
       required: true,

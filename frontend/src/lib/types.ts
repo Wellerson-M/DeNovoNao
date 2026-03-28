@@ -6,13 +6,15 @@ export type AuthSession = {
   role: AuthRole;
   id_casal: string | null;
   name?: string;
+  login?: string;
   email?: string;
 };
 
 export type UserRecord = {
   id: string;
   name: string;
-  email: string;
+  login: string | null;
+  email: string | null;
   role: AuthRole;
   id_casal: string | null;
   active: boolean;
@@ -25,6 +27,7 @@ export type SyncStatus = "pending" | "syncing" | "failed";
 export type ReviewInput = {
   placeName: string;
   locationLabel: string;
+  isDelivery: boolean;
   placeRating: number;
   opinionOne: string;
   opinionTwo: string;
@@ -63,3 +66,4 @@ export type AuthResponse = {
   token: string;
   user: UserRecord;
 };
+

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  deleteAdminUserController,
   listAdminReviewsController,
   listAdminUserReviewsController,
   listAdminUsersController,
@@ -15,4 +16,5 @@ adminRouter.use(requireAuth, requireRoleAtLeast(2));
 adminRouter.get("/users", listAdminUsersController);
 adminRouter.get("/users/:id/reviews", listAdminUserReviewsController);
 adminRouter.put("/users/:id", updateAdminUserController);
+adminRouter.delete("/users/:id", deleteAdminUserController);
 adminRouter.get("/reviews", listAdminReviewsController);

@@ -5,6 +5,7 @@ type ServerReview = {
   id_casal: string;
   placeName: string;
   locationLabel: string;
+  isDelivery?: boolean;
   placeRating: number;
   opinionOne: string;
   opinionTwo: string;
@@ -52,6 +53,7 @@ function mapReview(review: ServerReview): ReviewRecord {
     id_casal: review.id_casal,
     placeName: review.placeName,
     locationLabel: review.locationLabel,
+    isDelivery: typeof review.isDelivery === "boolean" ? review.isDelivery : false,
     placeRating: review.placeRating,
     opinionOne: review.opinionOne,
     opinionTwo: review.opinionTwo,

@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 import type { NextFunction, Request, Response } from "express";
 import { env } from "../config/env.js";
 import type { AuthRole, AuthUser } from "../types/auth.js";
@@ -14,6 +14,8 @@ declare module "express-serve-static-core" {
 type JwtPayload = {
   sub?: string;
   id?: string;
+  name?: string;
+  login?: string;
   email?: string;
   role?: number;
   id_casal?: string | number | null;
@@ -23,6 +25,8 @@ type CurrentUserRecord = {
   _id: unknown;
   role?: number;
   id_casal?: string | number | null;
+  name?: string;
+  login?: string;
   email?: string;
 };
 
@@ -50,11 +54,13 @@ function normalizeAuthUser(payload: JwtPayload): AuthUser {
     role: authRole,
     id_casal:
       payload.id_casal == null ? null : String(payload.id_casal).trim() ? String(payload.id_casal).trim() : null,
+    name: typeof payload.name === "string" ? payload.name : undefined,
+    login: typeof payload.login === "string" ? payload.login : undefined,
     email: typeof payload.email === "string" ? payload.email : undefined,
   };
 }
 
-export async function optionalAuth(request: Request, _response: Response, next: NextFunction) {
+export async function optionalAuth(request: Request, response: Response, next: NextFunction) {
   const token = extractBearerToken(request);
 
   if (!token) {
@@ -81,19 +87,20 @@ export async function optionalAuth(request: Request, _response: Response, next: 
         authUser = {
           id: String(currentUser._id),
           role: currentUser.role === 2 ? 2 : currentUser.role === 1 ? 1 : 0,
-          id_casal:
-            currentUser.id_casal == null ? null : String(currentUser.id_casal).trim() || null,
+          id_casal: currentUser.id_casal == null ? null : String(currentUser.id_casal).trim() || null,
+          name: typeof currentUser.name === "string" ? currentUser.name : authUser.name,
+          login: typeof currentUser.login === "string" ? currentUser.login : authUser.login,
           email: typeof currentUser.email === "string" ? currentUser.email : authUser.email,
         };
       }
     } catch {
-      // If the database lookup fails, keep the token payload as a fallback.
+      // Se a consulta ao banco falhar, seguimos com os dados do token.
     }
 
     request.authUser = authUser;
     return next();
   } catch (error) {
-    return _response.status(401).json({
+    return response.status(401).json({
       message: error instanceof Error ? error.message : "Token inválido",
     });
   }
@@ -118,3 +125,4 @@ export function requireRoleAtLeast(minimumRole: AuthRole) {
     return next();
   };
 }
+

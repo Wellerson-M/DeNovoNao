@@ -8,6 +8,7 @@ import type { ReviewInput } from "@/lib/types";
 const emptyForm: ReviewInput = {
   placeName: "",
   locationLabel: "",
+  isDelivery: false,
   placeRating: 4,
   opinionOne: "",
   opinionTwo: "",
@@ -91,24 +92,61 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
         <label className="grid gap-2">
           <span className="text-sm text-[var(--muted-strong)]">Bairro / cidade</span>
           <input
-            required
+            required={!form.isDelivery}
             value={form.locationLabel}
             onChange={(event) => setForm((current) => ({ ...current, locationLabel: event.target.value }))}
-            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-            placeholder="Ex: Centro, Joinville"
+            disabled={form.isDelivery}
+            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-60"
+            placeholder={form.isDelivery ? "Desativado para delivery" : "Ex: Centro, Joinville"}
           />
         </label>
 
-        <label className="grid gap-2">
-          <span className="text-sm text-[var(--muted-strong)]">Data da visita</span>
-          <input
-            required
-            type="date"
-            value={form.visitedAt}
-            onChange={(event) => setForm((current) => ({ ...current, visitedAt: event.target.value }))}
-            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-          />
-        </label>
+        <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2 sm:items-end">
+          <label className="grid gap-2">
+            <span className="text-sm text-[var(--muted-strong)]">Data da visita</span>
+            <input
+              required
+              type="date"
+              value={form.visitedAt}
+              onChange={(event) => setForm((current) => ({ ...current, visitedAt: event.target.value }))}
+              className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+            />
+          </label>
+
+          <label className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 private">
+            <div>
+              <p className="text-sm font-medium text-[var(--text)]">Delivery</p>
+              <p className="mt-1 text-xs text-[var(--muted-strong)]">
+                Quando ativado, a localização do local é desativada e o feed mostra como delivery.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setForm((current) => ({
+                  ...current,
+                  isDelivery: !current.isDelivery,
+                  locationLabel: current.isDelivery ? current.locationLabel : "",
+                }))
+              }
+              className={clsx(
+                "relative inline-flex h-8 w-14 items-center rounded-full border transition opacity-60 hover:opacity-80",
+                form.isDelivery
+                  ? "border-[var(--accent-soft)] bg-[color-mix(in_srgb,var(--accent)_42%,transparent)]"
+                  : "border-[var(--field-border)] bg-[color-mix(in_srgb,var(--panel)_72%,transparent)]"
+              )}
+              aria-pressed={form.isDelivery}
+            >
+              <span
+                className={clsx(
+                  "inline-block h-6 w-6 transform rounded-full bg-white transition",
+                  form.isDelivery ? "translate-x-7" : "translate-x-1"
+                )}
+              />
+            </button>
+          </label>
+        </div>
       </div>
 
       <div className="grid gap-2">

@@ -7,6 +7,7 @@ import { CalendarDays, LoaderCircle, Search, ShieldAlert, Trash2, UserRoundCog }
 import { useAuth } from "@/hooks/use-auth";
 import { useUi } from "@/contexts/ui-context";
 import {
+  deleteAdminUser,
   fetchAdminReviews,
   fetchAdminUserReviews,
   fetchAdminUsers,
@@ -38,11 +39,16 @@ function DetailReviewCard({
   onDelete: (reviewId: string, mode: "soft" | "hard") => Promise<void>;
 }) {
   return (
-    <article className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4">
+    <article className={clsx("rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4", !review.isPublic && "opacity-90")}>
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 space-y-2">
           <h2 className="text-lg font-semibold">{review.placeName}</h2>
-          <p className="text-sm text-[var(--muted-strong)]">{review.locationLabel}</p>
+          <p className="text-sm text-[var(--muted-strong)]">{review.isDelivery ? "Delivery" : review.locationLabel}</p>
+          {!review.isPublic ? (
+            <span className="inline-flex rounded-full border border-[var(--field-border)] bg-[var(--panel)] px-2.5 py-1 text-[11px] font-medium text-[var(--muted-strong)] opacity-80">
+              Privado
+            </span>
+          ) : null}
           <p className="text-sm text-[var(--text-soft)]">
             {review.isPublic ? "Pública" : "Privada"} · {review.active ? "Ativa" : "Na lixeira"}
             {review.publisherLabel ? ` · ${review.publisherLabel}` : ""}
@@ -108,11 +114,14 @@ export function AdminPage() {
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [userReviewsLoading, setUserReviewsLoading] = useState(false);
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reviewPage, setReviewPage] = useState(1);
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
+  const [selectedUserReviewPage, setSelectedUserReviewPage] = useState(1);
+  const [hasMoreSelectedUserReviews, setHasMoreSelectedUserReviews] = useState(false);
   const [expandedModerationGroups, setExpandedModerationGroups] = useState<Record<string, boolean>>({});
   const [feedback, setFeedback] = useState<string | null>(null);
   const [userQuery, setUserQuery] = useState("");
@@ -165,22 +174,61 @@ export function AdminPage() {
     }
   }
 
-  async function loadSelectedUserReviews(user: UserRecord, searchValue = selectedUserReviewQuery) {
+  async function loadSelectedUserReviews(
+    user: UserRecord,
+    searchValue = selectedUserReviewQuery,
+    page = 1,
+    mode: "replace" | "append" = "replace"
+  ) {
     if (!adminToken) {
       return;
     }
 
     setSelectedUser(user);
-    setSelectedReviewId(null);
+    if (mode === "replace") {
+      setSelectedReviewId(null);
+    }
     setUserReviewsLoading(true);
 
     try {
-      const response = await fetchAdminUserReviews(adminToken, user.id, 1, searchValue);
-      setUserReviews(response.items);
+      const response = await fetchAdminUserReviews(adminToken, user.id, page, searchValue);
+      setSelectedUserReviewPage(page);
+      setHasMoreSelectedUserReviews(response.meta.hasMore);
+      setUserReviews((current) => (mode === "append" ? [...current, ...response.items] : response.items));
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Não foi possível carregar as avaliações do usuário");
     } finally {
       setUserReviewsLoading(false);
+    }
+  }
+
+  async function handleDeleteUser(user: UserRecord) {
+    if (!adminToken) {
+      return;
+    }
+
+    const confirmed = window.confirm(`Tem certeza que deseja excluir o usuário ${user.name}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingUserId(user.id);
+    setFeedback(null);
+
+    try {
+      await deleteAdminUser(adminToken, user.id);
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+      if (selectedUser?.id === user.id) {
+        setSelectedUser(null);
+        setUserReviews([]);
+        setSelectedReviewId(null);
+        setHasMoreSelectedUserReviews(false);
+      }
+      setFeedback("Usuário excluído com sucesso.");
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : "Não foi possível excluir o usuário");
+    } finally {
+      setDeletingUserId(null);
     }
   }
 
@@ -215,6 +263,10 @@ export function AdminPage() {
 
       setUsers((current) => current.map((user) => (user.id === userId ? updated : user)));
       setEditedPairs((current) => ({ ...current, [userId]: updated.id_casal ?? "" }));
+      setSelectedUser((current) => (current?.id === userId ? updated : current));
+      if (selectedUser?.id === userId) {
+        await loadSelectedUserReviews(updated, selectedUserReviewQuery);
+      }
       setFeedback("id_casal atualizado com sucesso.");
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : "Não foi possível salvar");
@@ -243,7 +295,7 @@ export function AdminPage() {
 
   useEffect(() => {
     if (selectedUser) {
-      void loadSelectedUserReviews(selectedUser);
+      void loadSelectedUserReviews(selectedUser, selectedUserReviewQuery, 1, "replace");
     }
   }, [selectedUser?.id, selectedUserReviewQuery]);
 
@@ -333,8 +385,8 @@ export function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text)]">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <section className="rounded-[32px] border border-[var(--panel-border)] bg-[var(--panel)] p-6 shadow-[var(--panel-shadow)] backdrop-blur-xl">
+      <div className="mx-auto max-w-6xl px-3.5 py-6 sm:px-6 sm:py-10">
+        <section className="rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl sm:rounded-[32px] sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold">Painel Admin</h1>
@@ -380,7 +432,7 @@ export function AdminPage() {
                   <input
                     value={userQuery}
                     onChange={(event) => setUserQuery(event.target.value)}
-                    placeholder="Buscar usuário por nome, email ou casal"
+                    placeholder="Buscar usuário por nome, login ou casal"
                     className="w-full bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
                   />
                 </label>
@@ -406,7 +458,7 @@ export function AdminPage() {
                           <UserRoundCog className="h-4 w-4 text-[var(--muted)]" />
                           <h2 className="truncate text-lg font-semibold">{user.name}</h2>
                         </div>
-                        <p className="mt-2 text-sm text-[var(--muted-strong)]">{user.email}</p>
+                        <p className="mt-2 text-sm text-[var(--muted-strong)]">{user.login ? `@${user.login}` : user.email ?? "Sem login"}</p>
                         <p className="mt-2 text-xs uppercase tracking-[0.22em] text-[var(--muted)]">
                           Role {user.role} · casal {user.id_casal ?? "sem vínculo"}
                         </p>
@@ -436,6 +488,15 @@ export function AdminPage() {
                         >
                           {savingUserId === user.id ? "Salvando..." : "Salvar casal"}
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteUser(user)}
+                          disabled={deletingUserId === user.id}
+                          className="rounded-full border border-[var(--danger-border)] bg-[var(--danger-bg)] px-5 py-3 text-sm font-semibold text-[var(--danger-text)] disabled:opacity-70"
+                        >
+                          {deletingUserId === user.id ? "Excluindo..." : "Excluir usuário"}
+                        </button>
                       </div>
                     </div>
                   </article>
@@ -443,8 +504,8 @@ export function AdminPage() {
               </div>
 
               <div className="grid gap-4 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <h2 className="text-lg font-semibold">
                       {selectedUser ? `Avaliações de ${selectedUser.name}` : "Selecione um usuário"}
                     </h2>
@@ -456,7 +517,7 @@ export function AdminPage() {
                   </div>
 
                   {selectedUser ? (
-                    <label className="flex items-center gap-3 rounded-[24px] border border-[var(--field-border)] bg-[var(--panel)] px-4 py-3">
+                    <label className="flex w-full items-center gap-3 rounded-[24px] border border-[var(--field-border)] bg-[var(--panel)] px-4 py-3 sm:w-[min(340px,100%)] sm:flex-none">
                       <Search className="h-4 w-4 text-[var(--muted)]" />
                       <input
                         value={selectedUserReviewQuery}
@@ -479,10 +540,20 @@ export function AdminPage() {
                     <DetailReviewCard key={review.id} review={review} deletingId={deletingId} onDelete={handleDelete} />
                   ))}
                 </div>
+
+                {selectedUser && hasMoreSelectedUserReviews ? (
+                  <button
+                    type="button"
+                    onClick={() => void loadSelectedUserReviews(selectedUser, selectedUserReviewQuery, selectedUserReviewPage + 1, "append")}
+                    className="mx-auto rounded-full border border-[var(--field-border)] bg-[var(--panel)] px-5 py-3 text-sm font-medium text-[var(--text-soft)]"
+                  >
+                    Carregar mais avaliações do usuário
+                  </button>
+                ) : null}
               </div>
             </div>
           ) : (
-            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)]">
+            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.15fr)]">
               <div className="grid gap-4 xl:max-h-[70vh] xl:overflow-y-auto xl:pr-2">
                 <label className="flex items-center gap-3 rounded-[24px] border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3">
                   <Search className="h-4 w-4 text-[var(--muted)]" />
@@ -505,7 +576,7 @@ export function AdminPage() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <h2 className="text-lg font-semibold">{group.placeName}</h2>
-                        <p className="mt-1 text-sm text-[var(--muted-strong)]">{group.locationLabel}</p>
+                        <p className="mt-1 text-sm text-[var(--muted-strong)]">{group.reviews[0]?.isDelivery ? "Delivery" : group.locationLabel}</p>
                         <p className="mt-2 text-xs text-[var(--muted)]">
                           {group.reviews.length} avaliação{group.reviews.length > 1 ? "ões" : ""}
                         </p>
@@ -537,16 +608,24 @@ export function AdminPage() {
                             "rounded-3xl border p-4 text-left transition",
                             selectedReviewId === review.id
                               ? "border-[var(--accent-soft)] bg-[var(--accent-glass)]"
-                              : "border-[var(--field-border)] bg-[var(--panel)]"
+                              : "border-[var(--field-border)] bg-[var(--panel)]",
+                            !review.isPublic && "opacity-90"
                           )}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <span className="text-sm font-semibold">
                               {review.createdByName ?? review.publisherLabel ?? "Autor não identificado"}
                             </span>
-                            <span className="text-xs text-[var(--muted)]">
-                              {review.placeRating} estrela{review.placeRating > 1 ? "s" : ""}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              {!review.isPublic ? (
+                                <span className="rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-2 py-0.5 text-[10px] font-medium text-[var(--muted-strong)] opacity-80">
+                                  Privado
+                                </span>
+                              ) : null}
+                              <span className="text-xs text-[var(--muted)]">
+                                {review.placeRating} estrela{review.placeRating > 1 ? "s" : ""}
+                              </span>
+                            </div>
                           </div>
                           <p className="mt-2 text-xs text-[var(--muted)]">
                             {formatVisitDate(review.visitedAt)} · {review.isPublic ? "Pública" : "Privada"}
@@ -568,7 +647,7 @@ export function AdminPage() {
                 ) : null}
               </div>
 
-              <div ref={detailsRef} className="grid gap-4 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4 xl:sticky xl:top-6 xl:self-start">
+              <div ref={detailsRef} className="grid gap-4 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4 xl:sticky xl:top-6 xl:max-h-[70vh] xl:overflow-y-auto xl:self-start">
                 <h2 className="text-lg font-semibold">
                   {selectedReview ? `Detalhes de ${selectedReview.placeName}` : "Selecione uma avaliação"}
                 </h2>
@@ -589,3 +668,6 @@ export function AdminPage() {
     </main>
   );
 }
+
+
+

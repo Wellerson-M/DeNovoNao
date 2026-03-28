@@ -18,7 +18,7 @@ export function LoginPage() {
   const { showLoaderFor, withLoader } = useUi();
   const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,8 +39,8 @@ export function LoginPage() {
     try {
       const response =
         mode === "login"
-          ? await withLoader(loginUser({ email, password }), 520)
-          : await withLoader(registerUser({ name, email, password }), 520);
+          ? await withLoader(loginUser({ login, password }), 520)
+          : await withLoader(registerUser({ name, login, password }), 520);
 
       loginWithToken(response.token);
       showLoaderFor(520);
@@ -75,7 +75,7 @@ export function LoginPage() {
               {headline}
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--text-soft)]">
-              Entre com sua conta para registrar e acompanhar suas avaliações
+              Entre com sua conta para registrar e acompanhar suas avaliações.
             </p>
           </section>
 
@@ -90,7 +90,7 @@ export function LoginPage() {
                 </h2>
                 <p className="text-sm text-[var(--muted-strong)]">
                   {mode === "login"
-                    ? "Use seu email e senha para recuperar a sessão."
+                    ? "Use seu login e senha para entrar na sua conta."
                     : "O cadastro já cria um usuário de nível 1 pronto para uso."}
                 </p>
               </div>
@@ -135,13 +135,12 @@ export function LoginPage() {
               ) : null}
 
               <label className="grid gap-2">
-                <span className="text-sm text-[var(--muted-strong)]">Email</span>
+                <span className="text-sm text-[var(--muted-strong)]">Login</span>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  value={login}
+                  onChange={(event) => setLogin(event.target.value.toLowerCase())}
                   className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-                  placeholder="voce@exemplo.com"
+                  placeholder="seu.login"
                   required
                 />
               </label>
@@ -192,3 +191,6 @@ export function LoginPage() {
     </main>
   );
 }
+
+
+

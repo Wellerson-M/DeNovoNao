@@ -3,6 +3,8 @@ import { env } from "./env.js";
 import { setReviewDriver } from "../data/review-store.js";
 // @ts-ignore
 import { Review } from "../models/Review.js";
+// @ts-ignore
+import { User } from "../models/User.js";
 
 let isConnected = false;
 
@@ -11,6 +13,10 @@ const LEGACY_REVIEW_INDEXES = [
   "tags_1",
   "visitedAt_1",
   "placeName_text_locationLabel_text_redFlags_text",
+];
+
+const LEGACY_USER_INDEXES = [
+  "email_1",
 ];
 
 async function cleanupLegacyReviewIndexes() {
@@ -33,6 +39,26 @@ async function cleanupLegacyReviewIndexes() {
   await Review.syncIndexes();
 }
 
+async function cleanupLegacyUserIndexes() {
+  const database = mongoose.connection.db;
+  if (!database) {
+    return;
+  }
+
+  const collection = database.collection("users");
+  const indexes = await collection.indexes();
+  const indexNames = new Set(indexes.map((index) => index.name));
+
+  for (const indexName of LEGACY_USER_INDEXES) {
+    if (indexNames.has(indexName)) {
+      await collection.dropIndex(indexName);
+      console.warn(`Dropped legacy user index: ${indexName}`);
+    }
+  }
+
+  await User.syncIndexes();
+}
+
 export async function connectMongo() {
   if (env.storageMode === "memory") {
     setReviewDriver("memory");
@@ -50,6 +76,7 @@ export async function connectMongo() {
       serverSelectionTimeoutMS: 4000,
     });
     await cleanupLegacyReviewIndexes();
+    await cleanupLegacyUserIndexes();
     isConnected = true;
     setReviewDriver("mongo");
     return mongoose.connection;

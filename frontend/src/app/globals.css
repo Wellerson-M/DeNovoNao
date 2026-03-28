@@ -38,22 +38,24 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --page-bg:
-    radial-gradient(circle at top, rgba(124, 1, 22, 0.1), transparent 24%),
-    linear-gradient(180deg, #f5eeeb 0%, #efe6e4 48%, #e7dcda 100%);
-  --text: #24171a;
-  --text-soft: #45353a;
-  --muted: #856f75;
-  --muted-strong: #6c5960;
-  --panel: rgba(255, 255, 255, 0.42);
-  --panel-hover: rgba(255, 255, 255, 0.56);
-  --panel-border: rgba(97, 63, 71, 0.1);
-  --panel-shadow: 0 12px 34px rgba(71, 34, 42, 0.08);
-  --hero-bg: linear-gradient(135deg, rgba(124, 1, 22, 0.1), rgba(255, 255, 255, 0.38));
-  --hero-border: rgba(124, 1, 22, 0.12);
-  --hero-shadow: 0 18px 50px rgba(71, 34, 42, 0.1);
-  --field-bg: rgba(255, 255, 255, 0.5);
-  --field-bg-strong: rgba(255, 255, 255, 0.72);
-  --field-border: rgba(97, 63, 71, 0.12);
+    radial-gradient(circle at 12% -5%, rgba(255, 164, 111, 0.36), transparent 34%),
+    radial-gradient(circle at 88% 6%, rgba(124, 1, 22, 0.18), transparent 28%),
+    radial-gradient(circle at 50% 110%, rgba(187, 120, 84, 0.2), transparent 36%),
+    linear-gradient(180deg, #f6f0ed 0%, #ece3df 48%, #e2d8d4 100%);
+  --text: #21171a;
+  --text-soft: #44363a;
+  --muted: #7f6b71;
+  --muted-strong: #66545a;
+  --panel: rgba(255, 255, 255, 0.56);
+  --panel-hover: rgba(255, 255, 255, 0.74);
+  --panel-border: rgba(84, 52, 60, 0.22);
+  --panel-shadow: 0 16px 40px rgba(65, 36, 43, 0.14);
+  --hero-bg: linear-gradient(140deg, rgba(255, 255, 255, 0.64), rgba(255, 240, 234, 0.54));
+  --hero-border: rgba(124, 1, 22, 0.24);
+  --hero-shadow: 0 24px 56px rgba(67, 38, 46, 0.16);
+  --field-bg: rgba(255, 255, 255, 0.72);
+  --field-bg-strong: rgba(255, 255, 255, 0.86);
+  --field-border: rgba(91, 57, 65, 0.24);
   --accent: #7c0116;
   --accent-strong: #9a1329;
   --accent-soft: #b5485c;
@@ -81,6 +83,10 @@ body {
   background: var(--page-bg);
   color: var(--text);
   font-family: "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+:root[data-theme="light"] body {
+  backdrop-filter: saturate(1.08);
 }
 
 input,

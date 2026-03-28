@@ -37,6 +37,14 @@ function parseUserPatch(body: unknown) {
     patch.name = name;
   }
 
+  if (typeof input.login === "string") {
+    const login = input.login.trim().toLowerCase();
+    if (!/^[a-zA-Z0-9._-]{3,30}$/.test(login)) {
+      throw new Error("Login inválido");
+    }
+    patch.login = login;
+  }
+
   if (typeof input.email === "string") {
     const email = input.email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -82,6 +90,7 @@ function normalizeAdminReview(review: Record<string, unknown>) {
         : String(review.id_casal),
     placeName: typeof review.placeName === "string" ? review.placeName : "",
     locationLabel: typeof review.locationLabel === "string" ? review.locationLabel : "",
+    isDelivery: typeof review.isDelivery === "boolean" ? review.isDelivery : false,
     placeRating:
       typeof review.placeRating === "number"
         ? review.placeRating
@@ -185,6 +194,7 @@ export async function listAdminUsersController(request: Request, response: Respo
       ? {
           $or: [
             { name: { $regex: q, $options: "i" } },
+            { login: { $regex: q, $options: "i" } },
             { email: { $regex: q, $options: "i" } },
             { id_casal: { $regex: q, $options: "i" } },
           ],
@@ -197,6 +207,7 @@ export async function listAdminUsersController(request: Request, response: Respo
       items: users.map((user: InstanceType<typeof User>) => ({
         id: String(user._id),
         name: user.name,
+        login: user.login ?? null,
         email: user.email,
         role: user.role,
         id_casal: user.id_casal ?? null,
@@ -229,6 +240,13 @@ export async function updateAdminUserController(request: Request, response: Resp
       return response.status(404).json({ message: "Usuário não encontrado" });
     }
 
+    if (patch.login && patch.login !== user.login) {
+      const loginInUse = await User.findOne({ login: patch.login, _id: { $ne: user._id } });
+      if (loginInUse) {
+        return response.status(409).json({ message: "Este login já está em uso" });
+      }
+    }
+
     if (patch.email && patch.email !== user.email) {
       const emailInUse = await User.findOne({ email: patch.email, _id: { $ne: user._id } });
       if (emailInUse) {
@@ -236,19 +254,80 @@ export async function updateAdminUserController(request: Request, response: Resp
       }
     }
 
+    const previousCoupleId = user.id_casal == null ? null : String(user.id_casal).trim() || null;
     Object.assign(user, patch);
     await user.save();
+
+    const nextCoupleId = user.id_casal == null ? null : String(user.id_casal).trim() || null;
+    if (previousCoupleId !== nextCoupleId) {
+      await Review.updateMany(
+        {
+          createdByUserId: String(user._id),
+        },
+        {
+          $set: {
+            id_casal: nextCoupleId,
+          },
+        }
+      );
+    }
 
     return response.status(200).json({
       item: {
         id: String(user._id),
         name: user.name,
+        login: user.login ?? null,
         email: user.email,
         role: user.role,
         id_casal: user.id_casal ?? null,
         active: user.active,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Erro inesperado";
+    return response.status(400).json({ message });
+  }
+}
+
+export async function deleteAdminUserController(request: Request, response: Response) {
+  if (!(await ensureMongo(response))) {
+    return;
+  }
+
+  try {
+    const id = getRouteId(request.params.id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return response.status(400).json({ message: "ID de usuário inválido" });
+    }
+
+    if (request.authUser?.id && String(request.authUser.id) === id) {
+      return response.status(400).json({ message: "Você não pode excluir o seu próprio usuário" });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return response.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    await Review.updateMany(
+      {
+        createdByUserId: String(user._id),
+      },
+      {
+        $set: {
+          active: false,
+        },
+      }
+    );
+
+    await User.deleteOne({ _id: user._id });
+
+    return response.status(200).json({
+      message: "Usuário excluído com sucesso",
+      item: {
+        id: String(user._id),
       },
     });
   } catch (error) {
@@ -345,3 +424,5 @@ export async function listAdminUserReviewsController(request: Request, response:
     return response.status(500).json({ message });
   }
 }
+
+

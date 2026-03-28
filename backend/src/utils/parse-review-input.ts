@@ -1,6 +1,7 @@
 type ReviewBody = {
   placeName?: unknown;
   locationLabel?: unknown;
+  isDelivery?: unknown;
   placeRating?: unknown;
   opinionOne?: unknown;
   opinionTwo?: unknown;
@@ -33,6 +34,7 @@ function asDate(value: unknown) {
 export function parseCreateReviewInput(input: ReviewBody) {
   const placeName = asString(input.placeName);
   const locationLabel = asString(input.locationLabel);
+  const isDelivery = typeof input.isDelivery === "boolean" ? input.isDelivery : false;
   const opinionOne = asString(input.opinionOne);
   const opinionTwo = asString(input.opinionTwo);
   const placeRating = Number(input.placeRating);
@@ -44,7 +46,7 @@ export function parseCreateReviewInput(input: ReviewBody) {
     throw new Error("Informe o nome do local.");
   }
 
-  if (!locationLabel) {
+  if (!locationLabel && !isDelivery) {
     throw new Error("Informe a localização do local.");
   }
 
@@ -54,7 +56,8 @@ export function parseCreateReviewInput(input: ReviewBody) {
 
   return {
     placeName,
-    locationLabel,
+    locationLabel: isDelivery ? "Delivery" : locationLabel,
+    isDelivery,
     placeRating,
     opinionOne,
     opinionTwo,
@@ -78,10 +81,21 @@ export function parseUpdateReviewInput(input: ReviewBody) {
 
   if (input.locationLabel !== undefined) {
     const locationLabel = asString(input.locationLabel);
-    if (!locationLabel) {
+    if (!locationLabel && input.isDelivery !== true) {
       throw new Error("A localização não pode ficar vazia.");
     }
     patch.locationLabel = locationLabel;
+  }
+
+  if (input.isDelivery !== undefined) {
+    if (typeof input.isDelivery !== "boolean") {
+      throw new Error("O campo de delivery está inválido.");
+    }
+    patch.isDelivery = input.isDelivery;
+
+    if (input.isDelivery) {
+      patch.locationLabel = "Delivery";
+    }
   }
 
   if (input.placeRating !== undefined) {

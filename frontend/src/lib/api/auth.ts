@@ -12,12 +12,12 @@ function getApiUrl() {
   return "http://localhost:4000/api";
 }
 
-type AuthRequest = {
-  email: string;
+type LoginRequest = {
+  login: string;
   password: string;
 };
 
-type RegisterRequest = AuthRequest & {
+type RegisterRequest = LoginRequest & {
   name: string;
 };
 
@@ -26,7 +26,7 @@ async function readErrorMessage(response: Response, fallback: string) {
   return body?.message ?? fallback;
 }
 
-export async function loginUser(input: AuthRequest) {
+export async function loginUser(input: LoginRequest) {
   const response = await fetch(`${getApiUrl()}/auth/login`, {
     method: "POST",
     headers: {
@@ -57,3 +57,29 @@ export async function registerUser(input: RegisterRequest) {
 
   return (await response.json()) as AuthResponse;
 }
+
+export async function updateMyProfile(
+  input: {
+    name?: string;
+    login?: string;
+    currentPassword?: string;
+    newPassword?: string;
+  },
+  token: string
+) {
+  const response = await fetch(`${getApiUrl()}/auth/me`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível atualizar o perfil"));
+  }
+
+  return (await response.json()) as AuthResponse;
+}
+

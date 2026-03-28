@@ -6,6 +6,7 @@ type AdminReviewsResponse = {
     id_casal: string;
     placeName: string;
     locationLabel: string;
+    isDelivery?: boolean;
     placeRating: number;
     opinionOne: string;
     opinionTwo: string;
@@ -61,6 +62,7 @@ function mapReview(review: AdminReviewsResponse["items"][number]): ReviewRecord 
     id_casal: review.id_casal,
     placeName: review.placeName,
     locationLabel: review.locationLabel,
+    isDelivery: typeof review.isDelivery === "boolean" ? review.isDelivery : false,
     placeRating: review.placeRating,
     opinionOne: review.opinionOne,
     opinionTwo: review.opinionTwo,
@@ -96,7 +98,7 @@ export async function fetchAdminUsers(token: string, query = "") {
 
 export async function updateAdminUser(
   userId: string,
-  input: Partial<Pick<UserRecord, "name" | "email" | "role" | "id_casal" | "active">>,
+  input: Partial<Pick<UserRecord, "name" | "login" | "email" | "role" | "id_casal" | "active">>,
   token: string
 ) {
   const response = await fetch(`${getApiUrl()}/admin/users/${userId}`, {
@@ -156,3 +158,17 @@ export async function fetchAdminUserReviews(token: string, userId: string, page 
     meta: data.meta,
   };
 }
+
+export async function deleteAdminUser(token: string, userId: string) {
+  const response = await fetch(`${getApiUrl()}/admin/users/${userId}`, {
+    method: "DELETE",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível excluir o usuário"));
+  }
+
+  return (await response.json()) as { message: string; item: { id: string } };
+}
+

@@ -7,6 +7,7 @@ export function mergeReviews(remoteReviews: ReviewRecord[], localReviews: LocalQ
     id_casal: "local-only",
     placeName: review.placeName,
     locationLabel: review.locationLabel,
+    isDelivery: review.isDelivery,
     placeRating: review.placeRating,
     opinionOne: review.opinionOne,
     opinionTwo: review.opinionTwo,

@@ -4,6 +4,7 @@ type JwtPayload = {
   sub?: string;
   id?: string;
   name?: string;
+  login?: string;
   email?: string;
   role?: number;
   id_casal?: string | number | null;
@@ -37,6 +38,8 @@ export function decodeTokenToSession(token: string): AuthSession {
     role,
     id_casal: payload.id_casal == null ? null : String(payload.id_casal).trim() || null,
     name: typeof payload.name === "string" ? payload.name : undefined,
+    login: typeof payload.login === "string" ? payload.login : undefined,
     email: typeof payload.email === "string" ? payload.email : undefined,
   };
 }
+

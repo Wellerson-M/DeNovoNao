@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+﻿import type { Request, Response } from "express";
 import mongoose from "mongoose";
 // @ts-ignore
 import { Review } from "../models/Review.js";
@@ -85,7 +85,7 @@ function buildFeedFilter(request: Request) {
 
 async function ensureMongo(response: Response) {
   if (getReviewDriver() !== "mongo") {
-    response.status(503).json({ message: "Review API requires MongoDB storage" });
+    response.status(503).json({ message: "A API de avaliações exige conexão com o MongoDB." });
     return false;
   }
 
@@ -110,6 +110,7 @@ function normalizeReviewDocument(review: Record<string, unknown>) {
         : String(review.id_casal),
     placeName: typeof review.placeName === "string" ? review.placeName : "",
     locationLabel: typeof review.locationLabel === "string" ? review.locationLabel : "",
+    isDelivery: typeof review.isDelivery === "boolean" ? review.isDelivery : false,
     placeRating:
       typeof review.placeRating === "number"
         ? review.placeRating
@@ -236,7 +237,7 @@ export async function listReviewsController(request: Request, response: Response
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected error";
+    const message = error instanceof Error ? error.message : "Erro inesperado";
     response.status(500).json({ message });
   }
 }
@@ -342,3 +343,5 @@ export async function deleteReviewController(request: Request, response: Respons
     return response.status(400).json({ message });
   }
 }
+
+

@@ -1,4 +1,4 @@
-import mongoose, { Schema, model } from "mongoose";
+﻿import mongoose, { Schema, model } from "mongoose";
 
 const userSchema = new Schema(
   {
@@ -7,13 +7,17 @@ const userSchema = new Schema(
       required: true,
       trim: true,
     },
-    email: {
+    login: {
       type: String,
-      required: true,
-      unique: true,
+      required: false,
       lowercase: true,
       trim: true,
-      index: true,
+    },
+    email: {
+      type: String,
+      required: false,
+      lowercase: true,
+      trim: true,
     },
     passwordHash: {
       type: String,
@@ -41,7 +45,8 @@ const userSchema = new Schema(
   }
 );
 
-userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ login: 1 }, { unique: true, sparse: true });
 userSchema.index({ id_casal: 1, role: 1 });
 
 export const User = mongoose.models.User || model("User", userSchema);
+
