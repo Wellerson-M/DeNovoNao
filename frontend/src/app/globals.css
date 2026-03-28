@@ -113,3 +113,7 @@ a {
   background: rgba(163, 26, 49, 0.22);
   color: #fff;
 }
+
+.private {
+  opacity: 0.6;
+}

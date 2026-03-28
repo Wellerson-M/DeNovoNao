@@ -23,6 +23,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { ReviewForm } from "@/components/review-form";
+import { usePwa } from "@/contexts/pwa-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
 import { useReviews } from "@/hooks/use-reviews";
@@ -255,6 +256,7 @@ export function HomePage() {
   const { isOnline } = useConnection();
   const { session, logout } = useAuth();
   const { showLoaderFor, withLoader } = useUi();
+  const { refreshApp } = usePwa();
   const [query, setQuery] = useState("");
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -458,6 +460,15 @@ export function HomePage() {
                 >
                   <RefreshCcw className={clsx("h-4 w-4", isRefreshing && "animate-spin")} />
                   Atualizar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void refreshApp()}
+                  className="inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)] hover:-translate-y-0.5"
+                >
+                  <RefreshCcw className="h-4 w-4" />
+                  Atualizar app
                 </button>
               </div>
             </div>

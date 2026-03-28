@@ -1,5 +1,4 @@
 ﻿"use client";
-/* cSpell:disable */
 
 import { FormEvent, useMemo, useState } from "react";
 import clsx from "clsx";
@@ -141,7 +140,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
             value={form.opinionOne}
             onChange={(event) => setForm((current) => ({ ...current, opinionOne: event.target.value }))}
             className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-            placeholder="Primeira impressão, sabor, atendimento..."
+            placeholder="Primeira opinião, sabor, atendimento..."
           />
         </label>
 
@@ -152,7 +151,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
             value={form.opinionTwo}
             onChange={(event) => setForm((current) => ({ ...current, opinionTwo: event.target.value }))}
             className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-            placeholder="Segunda impressão, consistência, custo-benefício..."
+            placeholder="Segunda opinião, consistência, custo-benefício..."
           />
         </label>
       </div>
@@ -163,15 +162,15 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
           value={warningsText}
           onChange={(event) => setWarningsText(event.target.value)}
           className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-          placeholder="Ex: maionese ruim, esperar muito, não pedir batata"
+          placeholder="Separados por vírgula"
         />
       </label>
 
-      <label className="flex items-center justify-between gap-3 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3">
+      <label className="flex items-center justify-between gap-3 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 private">
         <div>
           <p className="text-sm font-medium text-[var(--text)]">Privado</p>
           <p className="mt-1 text-xs text-[var(--muted-strong)]">
-            Quando ativado, a avaliação fica visível só para você e seu casal.
+            Quando ativado, a avaliação fica visível só para você.
           </p>
         </div>
 

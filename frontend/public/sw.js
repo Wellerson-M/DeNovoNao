@@ -1,5 +1,5 @@
-const CACHE_NAME = "avalieitor-v2";
-const APP_SHELL = ["/", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
+const CACHE_NAME = "avalieitor-v3";
+const STATIC_ASSETS = ["/manifest.json", "/icon-192.svg", "/icon-512.svg"];
 
 function isLocalHostname(hostname) {
   return (
@@ -20,16 +20,51 @@ async function destroyLocalServiceWorker() {
   await Promise.all(clients.map((client) => client.navigate(client.url)));
 }
 
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+
+    if (response && response.ok) {
+      await cache.put(request, response.clone());
+    }
+
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) {
+      return cached;
+    }
+
+    return Response.error();
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const networkPromise = fetch(request)
+    .then((response) => {
+      if (response && response.ok) {
+        cache.put(request, response.clone());
+      }
+
+      return response;
+    })
+    .catch(() => null);
+
+  return cached || networkPromise || Response.error();
+}
+
 self.addEventListener("install", (event) => {
   if (isLocalHostname(self.location.hostname)) {
     event.waitUntil(destroyLocalServiceWorker());
     return;
   }
 
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
-
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
 });
 
@@ -42,11 +77,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
       caches.keys().then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
       ),
       self.clients.claim(),
     ])
@@ -62,25 +93,20 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
+  const requestUrl = new URL(event.request.url);
+  if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
 
-      return fetch(event.request)
-        .then((response) => {
-          const cloned = response.clone();
+  const isDocumentRequest =
+    event.request.mode === "navigate" || event.request.destination === "document";
 
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, cloned);
-          });
+  if (isDocumentRequest) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
 
-          return response;
-        })
-        .catch(() => caches.match("/"));
-    })
-  );
+  event.respondWith(staleWhileRevalidate(event.request));
 });
 
 self.addEventListener("message", (event) => {
