@@ -170,13 +170,13 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
         <div>
           <p className="text-sm font-medium text-[var(--text)]">Privado</p>
           <p className="mt-1 text-xs text-[var(--muted-strong)]">
-            Quando ativado, a avaliação fica visível só para o seu você.
+            Quando ativado, a avaliação fica visível só para você e seu casal.
           </p>
         </div>
 
         <button
           type="button"
-          onClick={() => setForm((current) => ({ ...current, isPublic: current.isPublic ? false : true }))}
+          onClick={() => setForm((current) => ({ ...current, isPublic: !current.isPublic }))}
           className={clsx(
             "relative inline-flex h-8 w-14 items-center rounded-full border transition opacity-60 hover:opacity-80",
             !form.isPublic

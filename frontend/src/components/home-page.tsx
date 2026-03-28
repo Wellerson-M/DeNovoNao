@@ -364,9 +364,6 @@ export function HomePage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-3xl">
                 <p className="text-xs uppercase tracking-[0.34em] text-[var(--muted)]">DeNovoNao</p>
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-[var(--muted-strong)]">
-                  Atualização automática ativa
-                </div>
                 <h1 className="mt-3 text-4xl font-semibold tracking-tight text-[var(--text)] sm:text-5xl">
                   Registre avaliações e não repita erros gastronômicos.
                 </h1>

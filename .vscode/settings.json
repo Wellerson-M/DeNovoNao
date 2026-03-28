@@ -1,0 +1,15 @@
+{
+  "cSpell.configFile": "${workspaceFolder}/cspell.json",
+  "cSpell.language": "en,pt,pt-BR",
+  "cSpell.enabledLanguageIds": [
+    "typescript",
+    "typescriptreact",
+    "javascript",
+    "javascriptreact",
+    "json",
+    "jsonc",
+    "markdown"
+  ],
+  "explorer.decorations.colors": false,
+  "explorer.decorations.badges": false
+}
