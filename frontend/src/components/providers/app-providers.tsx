@@ -32,14 +32,55 @@ function ProvidersRuntime({ children }: { children: React.ReactNode }) {
   const { isBusy } = useUi();
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production") {
-      if ("serviceWorker" in navigator) {
-        void navigator.serviceWorker.register("/sw.js");
-      }
-    } else {
+    if (process.env.NODE_ENV !== "production") {
       void clearLegacyOfflineCaches();
+      return;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "production" || !("serviceWorker" in navigator)) {
+      return;
     }
 
+    let hasRefreshed = false;
+
+    void navigator.serviceWorker.register("/sw.js").then((registration) => {
+      const monitorWorker = (worker: ServiceWorker | null) => {
+        if (!worker) {
+          return;
+        }
+
+        worker.addEventListener("statechange", () => {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) {
+            worker.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+      };
+
+      monitorWorker(registration.installing);
+      registration.addEventListener("updatefound", () => {
+        monitorWorker(registration.installing);
+      });
+    });
+
+    const handleControllerChange = () => {
+      if (hasRefreshed) {
+        return;
+      }
+
+      hasRefreshed = true;
+      window.location.reload();
+    };
+
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isOnline) {
       void syncPendingReviews(session?.token ?? null);
     }
