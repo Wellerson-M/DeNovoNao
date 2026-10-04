@@ -6,6 +6,7 @@ import clsx from "clsx";
 import {
   AlertTriangle,
   Bike,
+  Heart,
   ChevronRight,
   LoaderCircle,
   LogIn,
@@ -20,9 +21,11 @@ import {
   Star,
   SunMedium,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { updateMyProfile } from "@/lib/api/auth";
+import { LogoMark, Wordmark } from "@/components/brand";
 import { ReviewForm } from "@/components/review-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
@@ -550,9 +553,10 @@ export function HomePage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))] sm:gap-6 sm:px-6 sm:py-6 md:pb-10 lg:px-8">
         <section className="relative isolate overflow-hidden rounded-[28px] border border-[var(--hero-border)] bg-[image:var(--hero-bg)] p-4 shadow-[var(--hero-shadow)] backdrop-blur-2xl sm:rounded-[32px] sm:p-7">
           <div className="hero-glow -z-10" aria-hidden="true" />
+          <LogoMark className="pointer-events-none absolute -bottom-10 -right-8 -z-10 h-56 w-56 rotate-[-14deg] text-[var(--text)] opacity-[0.06] sm:-bottom-16 sm:right-6 sm:h-80 sm:w-80" />
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between gap-3">
-              <p className="brand-wordmark text-sm uppercase tracking-[0.24em]">DeNovoNao</p>
+              <Wordmark textClassName="max-[389px]:hidden" />
 
               <div className="flex items-center gap-2">
                 <button
@@ -753,17 +757,24 @@ export function HomePage() {
         ) : (
           <>
             <section className="grid gap-4">
-              <h3 className="text-lg font-bold text-[var(--text)]">Minhas avaliações</h3>
+              <h3 className="flex items-center gap-2 text-lg font-bold text-[var(--text)]">
+                <Heart className="h-5 w-5 text-[var(--accent-soft)]" />
+                Minhas avaliações
+              </h3>
 
               {!session ? (
-                <div className="rounded-[20px] border border-dashed border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--muted-strong)]">
-                  <Link href="/login" className="font-semibold text-[var(--accent-soft)] underline-offset-4 hover:underline">
-                    Faça login
-                  </Link>{" "}
-                  para registrar e gerenciar suas avaliações.
+                <div className="flex items-center gap-3 rounded-[20px] border border-dashed border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--muted-strong)]">
+                  <LogoMark className="h-8 w-8 shrink-0 text-[var(--accent-soft)] opacity-60" />
+                  <span>
+                    <Link href="/login" className="font-semibold text-[var(--accent-soft)] underline-offset-4 hover:underline">
+                      Faça login
+                    </Link>{" "}
+                    para registrar e gerenciar suas avaliações.
+                  </span>
                 </div>
               ) : myReviews.length === 0 ? (
-                <div className="rounded-[20px] border border-dashed border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--muted-strong)]">
+                <div className="flex items-center gap-3 rounded-[20px] border border-dashed border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--muted-strong)]">
+                  <LogoMark className="h-8 w-8 shrink-0 text-[var(--accent-soft)] opacity-60" />
                   {searchTitle || ratingFilter ? "Nenhuma avaliação sua para este filtro." : "Você ainda não tem avaliações. Que tal registrar a primeira?"}
                 </div>
               ) : (
@@ -793,10 +804,14 @@ export function HomePage() {
             </section>
 
             <section className="grid gap-4">
-              <h3 className="text-lg font-bold text-[var(--text)]">De outras pessoas</h3>
+              <h3 className="flex items-center gap-2 text-lg font-bold text-[var(--text)]">
+                <Users className="h-5 w-5 text-[var(--accent-soft)]" />
+                De outras pessoas
+              </h3>
 
               {otherReviews.length === 0 ? (
-                <div className="rounded-[20px] border border-dashed border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--muted-strong)]">
+                <div className="flex items-center gap-3 rounded-[20px] border border-dashed border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--muted-strong)]">
+                  <LogoMark className="h-8 w-8 shrink-0 text-[var(--accent-soft)] opacity-60" />
                   Nenhuma avaliação pública de outras pessoas para este filtro.
                 </div>
               ) : (
