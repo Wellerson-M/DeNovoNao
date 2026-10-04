@@ -298,6 +298,9 @@ export async function updateReviewController(request: Request, response: Respons
     }
 
     const patch = parseUpdateReviewInput(request.body);
+    if (authUser.role < 2) {
+      delete patch.active;
+    }
     Object.assign(review, patch);
     await review.save();
 
