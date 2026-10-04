@@ -25,6 +25,7 @@ app.use(
       // Sem cabeçalhos CORS o navegador bloqueia a resposta; não precisa virar erro 500.
       return callback(null, false);
     },
+    exposedHeaders: ["X-Auth-Error"],
   })
 );
 app.use(express.json());

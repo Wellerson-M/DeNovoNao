@@ -60,55 +60,69 @@ function normalizeAuthUser(payload: JwtPayload): AuthUser {
   };
 }
 
+const VISITOR: AuthUser = { id: "", role: 0, id_casal: null };
+
+async function resolveAuthUser(token: string): Promise<AuthUser | null> {
+  let authUser: AuthUser;
+
+  try {
+    authUser = normalizeAuthUser(jwt.verify(token, env.jwtSecret) as JwtPayload);
+  } catch {
+    return null;
+  }
+
+  if (!authUser.id) {
+    return null;
+  }
+
+  try {
+    const currentUser = (await User.findById(authUser.id).lean()) as CurrentUserRecord | null;
+
+    if (currentUser) {
+      authUser = {
+        id: String(currentUser._id),
+        role: currentUser.role === 2 ? 2 : currentUser.role === 1 ? 1 : 0,
+        id_casal: currentUser.id_casal == null ? null : String(currentUser.id_casal).trim() || null,
+        name: typeof currentUser.name === "string" ? currentUser.name : authUser.name,
+        login: typeof currentUser.login === "string" ? currentUser.login : authUser.login,
+        email: typeof currentUser.email === "string" ? currentUser.email : authUser.email,
+      };
+    }
+  } catch {
+    // Se a consulta ao banco falhar, seguimos com os dados do token.
+  }
+
+  return authUser;
+}
+
 export async function optionalAuth(request: Request, response: Response, next: NextFunction) {
   const token = extractBearerToken(request);
 
   if (!token) {
-    request.authUser = {
-      id: "",
-      role: 0,
-      id_casal: null,
-    };
+    request.authUser = { ...VISITOR };
     return next();
   }
 
-  try {
-    const payload = jwt.verify(token, env.jwtSecret) as JwtPayload;
-    let authUser = normalizeAuthUser(payload);
+  const authUser = await resolveAuthUser(token);
 
-    if (!authUser.id) {
-      return next(new Error("Token inválido"));
-    }
-
-    try {
-      const currentUser = (await User.findById(authUser.id).lean()) as CurrentUserRecord | null;
-
-      if (currentUser) {
-        authUser = {
-          id: String(currentUser._id),
-          role: currentUser.role === 2 ? 2 : currentUser.role === 1 ? 1 : 0,
-          id_casal: currentUser.id_casal == null ? null : String(currentUser.id_casal).trim() || null,
-          name: typeof currentUser.name === "string" ? currentUser.name : authUser.name,
-          login: typeof currentUser.login === "string" ? currentUser.login : authUser.login,
-          email: typeof currentUser.email === "string" ? currentUser.email : authUser.email,
-        };
-      }
-    } catch {
-      // Se a consulta ao banco falhar, seguimos com os dados do token.
-    }
-
-    request.authUser = authUser;
+  if (!authUser) {
+    // Token expirado ou inválido: segue como visitante para o feed público continuar
+    // funcionando e avisa o app pelo cabeçalho para ele encerrar a sessão salva.
+    response.setHeader("X-Auth-Error", "session-expired");
+    request.authUser = { ...VISITOR };
     return next();
-  } catch (error) {
-    return response.status(401).json({
-      message: error instanceof Error ? error.message : "Token inválido",
-    });
   }
+
+  request.authUser = authUser;
+  return next();
 }
 
 export function requireAuth(request: Request, response: Response, next: NextFunction) {
   if (!request.authUser || !request.authUser.id) {
-    return response.status(401).json({ message: "Autenticação obrigatória" });
+    const expired = response.getHeader("X-Auth-Error") === "session-expired";
+    return response.status(401).json({
+      message: expired ? "Sua sessão expirou. Entre novamente." : "Autenticação obrigatória",
+    });
   }
 
   return next();

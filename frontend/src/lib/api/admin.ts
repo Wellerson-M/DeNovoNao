@@ -1,4 +1,5 @@
-﻿import type { ReviewRecord, UserRecord } from "@/lib/types";
+import { apiFetch } from "@/lib/api/session";
+import type { ReviewRecord, UserRecord } from "@/lib/types";
 
 type AdminReviewsResponse = {
   items: Array<{
@@ -84,7 +85,7 @@ export async function fetchAdminUsers(token: string, query = "") {
     params.set("q", query.trim());
   }
 
-  const response = await fetch(`${getApiUrl()}/admin/users?${params.toString()}`, {
+  const response = await apiFetch(`${getApiUrl()}/admin/users?${params.toString()}`, {
     cache: "no-store",
     headers: headers(token),
   });
@@ -101,7 +102,7 @@ export async function updateAdminUser(
   input: Partial<Pick<UserRecord, "name" | "login" | "email" | "role" | "id_casal" | "active">>,
   token: string
 ) {
-  const response = await fetch(`${getApiUrl()}/admin/users/${userId}`, {
+  const response = await apiFetch(`${getApiUrl()}/admin/users/${userId}`, {
     method: "PUT",
     headers: headers(token),
     body: JSON.stringify(input),
@@ -121,7 +122,7 @@ export async function fetchAdminReviews(token: string, page = 1, query = "", sor
     params.set("q", query.trim());
   }
 
-  const response = await fetch(`${getApiUrl()}/admin/reviews?${params.toString()}`, {
+  const response = await apiFetch(`${getApiUrl()}/admin/reviews?${params.toString()}`, {
     cache: "no-store",
     headers: headers(token),
   });
@@ -143,7 +144,7 @@ export async function fetchAdminUserReviews(token: string, userId: string, page 
     params.set("q", query.trim());
   }
 
-  const response = await fetch(`${getApiUrl()}/admin/users/${userId}/reviews?${params.toString()}`, {
+  const response = await apiFetch(`${getApiUrl()}/admin/users/${userId}/reviews?${params.toString()}`, {
     cache: "no-store",
     headers: headers(token),
   });
@@ -160,7 +161,7 @@ export async function fetchAdminUserReviews(token: string, userId: string, page 
 }
 
 export async function deleteAdminUser(token: string, userId: string) {
-  const response = await fetch(`${getApiUrl()}/admin/users/${userId}`, {
+  const response = await apiFetch(`${getApiUrl()}/admin/users/${userId}`, {
     method: "DELETE",
     headers: headers(token),
   });
