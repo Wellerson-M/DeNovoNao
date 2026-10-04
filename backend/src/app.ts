@@ -8,7 +8,8 @@ import { reviewsRouter } from "./routes/reviews.js";
 export const app = express();
 // Cada item de CLIENT_ORIGIN pode ter "*" como curinga, ex.:
 // https://denovonao-*.vercel.app libera todos os previews de branch do Vercel.
-const allowedOrigins = env.clientOrigin
+const allowedOrigins = [env.clientOrigin, env.previewOrigins]
+  .join(",")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean)

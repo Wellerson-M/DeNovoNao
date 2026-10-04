@@ -7,5 +7,7 @@ export const env = {
   mongoUri: process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/avalieitor",
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:3000,http://127.0.0.1:3000",
   storageMode: process.env.STORAGE_MODE ?? "auto",
+  // Previews de branch do Vercel (projeto de-novo-nao). Aceita "*" como curinga; vazio desativa.
+  previewOrigins: process.env.PREVIEW_ORIGINS ?? "https://de-novo-*-wellerson-ms-projects.vercel.app",
   jwtSecret: process.env.JWT_SECRET ?? "change-me",
 };
