@@ -1,5 +1,5 @@
-const CACHE_NAME = "avalieitor-v3";
-const STATIC_ASSETS = ["/manifest.json", "/icon-192.svg", "/icon-512.svg"];
+const CACHE_NAME = "avalieitor-v6";
+const STATIC_ASSETS = ["/manifest.json", "/icon-192.png", "/icon-512.png", "/doodles.svg"];
 
 function isLocalHostname(hostname) {
   return (

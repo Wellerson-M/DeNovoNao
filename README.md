@@ -37,6 +37,7 @@ DeNovoNao/
 ├── package.json            # Scripts da raiz: sobe front + back juntos (concurrently), Mongo via Docker
 ├── docker-compose.yml      # MongoDB 7 local (container "avalieitor-mongo", porta 27017)
 ├── DEPLOY.md               # Passo a passo de publicação (Vercel + Render + Atlas)
+├── docs/marca/             # Logo em vetor (logo.svg = fonte oficial), variações e as imagens originais geradas por IA
 ├── cspell.json             # Palavras liberadas no corretor ortográfico do editor
 ├── scripts/
 │   ├── start-dev.ps1       # Instala tudo, cria os .env, sobe Mongo (se houver Docker) e roda o app
@@ -103,7 +104,9 @@ DeNovoNao/
 | Criar um endpoint novo | Controller em `backend/src/controllers/`, rota em `backend/src/routes/`, registrar em `backend/src/app.ts` se for um router novo, chamada em `frontend/src/lib/api/` |
 | Mudar quem pode fazer o quê | `backend/src/routes/*.ts` (`requireAuth`, `requireRoleAtLeast`) e checagens de `id_casal` nos controllers |
 | Mudar cores/tema | Variáveis CSS em `frontend/src/app/globals.css` (`:root` = escuro, `:root[data-theme="light"]` = claro) |
+| Mudar a logo | Editar `docs/marca/logo.svg` e o desenho em `frontend/src/components/brand.tsx`; regenerar `icon-*.png` (public), `icon.svg` e `apple-icon.png` (src/app) |
 | Mudar nome/ícone do app instalado | `frontend/public/manifest.json`, ícones em `frontend/public/` e `metadata` em `frontend/src/app/layout.tsx` |
+| Mudar os desenhos do fundo | `frontend/public/doodles.svg` (opacidade na variável `--doodle` do `globals.css`) |
 | Forçar atualização do PWA nos celulares | Incrementar `CACHE_NAME` em `frontend/public/sw.js` |
 | Liberar um novo domínio do frontend | Variável `CLIENT_ORIGIN` do backend (separada por vírgula) |
 | Testar pelo celular na rede local | Adicionar o IP em `allowedDevOrigins` no `frontend/next.config.ts` e em `CLIENT_ORIGIN` |
@@ -155,7 +158,7 @@ npm run dev        # frontend em http://localhost:3000 e API em http://localhost
 |---|---|---|
 | `PORT` | Porta da API | `4000` |
 | `MONGODB_URI` | Conexão com o MongoDB | `mongodb://127.0.0.1:27017/avalieitor` |
-| `CLIENT_ORIGIN` | Origens liberadas no CORS (separadas por vírgula) | `http://localhost:3000,http://127.0.0.1:3000` |
+| `CLIENT_ORIGIN` | Origens liberadas no CORS (separadas por vírgula; aceita `*` como curinga, ex.: `https://<projeto>-*.vercel.app`) | `http://localhost:3000,http://127.0.0.1:3000` |
 | `STORAGE_MODE` | `auto` tenta o Mongo; `memory` desliga o Mongo | `auto` |
 | `JWT_SECRET` | Segredo para assinar os tokens — **troque em produção** | `change-me` |
 

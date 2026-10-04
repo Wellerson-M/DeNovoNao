@@ -1,6 +1,16 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/app-providers";
+
+const sans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
+
+// Aplica o tema salvo antes da primeira pintura para não piscar escuro -> claro.
+const themeScript = `try{var t=localStorage.getItem("denovonao-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}`;
 
 export const metadata: Metadata = {
   title: "DeNovoNao",
@@ -18,7 +28,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#7c0116",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#140b07",
 };
 
 export default function RootLayout({
@@ -27,7 +40,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={sans.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <AppProviders>{children}</AppProviders>
       </body>

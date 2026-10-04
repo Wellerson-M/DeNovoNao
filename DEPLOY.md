@@ -72,6 +72,18 @@ Se quiser manter mais de uma origem:
 CLIENT_ORIGIN=https://avalieitor.vercel.app,https://www.seudominio.com
 ```
 
+### Previews de branch do Vercel
+
+Cada branch enviado ao GitHub ganha uma URL de preview no Vercel (ex.: `https://<projeto>-git-<branch>-<time>.vercel.app`).
+Para não precisar cadastrar cada uma, use `*` como curinga no `CLIENT_ORIGIN` (vale só para letras, números e hífen, sem atravessar pontos):
+
+```txt
+CLIENT_ORIGIN=https://<projeto>.vercel.app,https://<projeto>-*.vercel.app
+```
+
+No Vercel, confira também se `NEXT_PUBLIC_API_URL` está marcada para o ambiente **Preview** (além de Production).
+Atenção: os previews usam a mesma API e o mesmo banco de produção.
+
 ## 4. Instalar no celular
 
 Android:
