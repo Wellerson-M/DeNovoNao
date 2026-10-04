@@ -1,5 +1,6 @@
 # Deploy Para Celular
-n> Visão geral do projeto e mapa de pastas: veja o [README](README.md).
+
+> Visão geral do projeto e mapa de pastas: veja o [README](README.md).
 
 Objetivo: publicar o app para abrir no Android e iPhone fora da rede local e permitir instalacao como web app.
 
