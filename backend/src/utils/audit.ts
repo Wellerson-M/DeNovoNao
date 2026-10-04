@@ -2,6 +2,7 @@ import type { Request } from "express";
 // @ts-ignore
 import { AuditLog } from "../models/AuditLog.js";
 import { getReviewDriver } from "../data/review-store.js";
+import { clientIp } from "./client-ip.js";
 
 export type AuditAction =
   | "review.create"
@@ -28,12 +29,6 @@ type AuditInput = {
   /** Quando quem agiu não está autenticado (ex.: login falhado). */
   actor?: { id?: string | null; name?: string; login?: string; role?: number };
 };
-
-function clientIp(request: Request) {
-  const forwarded = request.headers["x-forwarded-for"];
-  const first = Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(",")[0];
-  return (first ?? request.ip ?? "").trim().slice(0, 64);
-}
 
 /**
  * Grava uma ocorrência. Nunca lança: uma falha de auditoria não pode

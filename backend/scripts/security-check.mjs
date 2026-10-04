@@ -267,6 +267,20 @@ async function run() {
   }
   check("Tentativas repetidas de login são bloqueadas (429)", limiterTripped);
 
+  if (limiterTripped) {
+    // O bloqueio tem de valer por visitante, não para o site inteiro.
+    const outroVisitante = await call("/auth/login", {
+      method: "POST",
+      body: { login: "alvo-brute-force", password: "outra" },
+      headers: { "CF-Connecting-IP": "198.51.100.77" },
+    });
+    check(
+      "Bloqueio vale por visitante, não derruba o login de todos",
+      outroVisitante.status !== 429,
+      `status ${outroVisitante.status}`
+    );
+  }
+
   // --------------------------------------------------------------- resumo
   const failed = results.filter((item) => !item.passed);
   console.log(`\n${results.length - failed.length}/${results.length} verificações passaram${skipped ? `, ${skipped} puladas` : ""}.`);
