@@ -1,4 +1,5 @@
-﻿import type { ReviewInput, ReviewRecord, ReviewsResponse } from "@/lib/types";
+import { apiFetch } from "@/lib/api/session";
+import type { ReviewInput, ReviewRecord, ReviewsResponse } from "@/lib/types";
 
 type ServerReview = {
   _id: string;
@@ -87,7 +88,7 @@ export async function fetchReviews(params: {
 
   searchParams.set("page", String(params.page ?? 1));
 
-  const response = await fetch(`${getApiUrl()}/reviews?${searchParams.toString()}`, {
+  const response = await apiFetch(`${getApiUrl()}/reviews?${searchParams.toString()}`, {
     cache: "no-store",
     headers: {
       ...authHeaders(params.token),
@@ -107,7 +108,7 @@ export async function fetchReviews(params: {
 }
 
 export async function createReview(input: ReviewInput, token: string) {
-  const response = await fetch(`${getApiUrl()}/reviews`, {
+  const response = await apiFetch(`${getApiUrl()}/reviews`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -126,7 +127,7 @@ export async function createReview(input: ReviewInput, token: string) {
 }
 
 export async function updateReview(reviewId: string, input: Partial<ReviewInput>, token: string) {
-  const response = await fetch(`${getApiUrl()}/reviews/${reviewId}`, {
+  const response = await apiFetch(`${getApiUrl()}/reviews/${reviewId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -145,7 +146,7 @@ export async function updateReview(reviewId: string, input: Partial<ReviewInput>
 }
 
 export async function removeReview(reviewId: string, token: string, mode: "soft" | "hard" = "soft") {
-  const response = await fetch(`${getApiUrl()}/reviews/${reviewId}`, {
+  const response = await apiFetch(`${getApiUrl()}/reviews/${reviewId}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -164,7 +165,7 @@ export async function removeReview(reviewId: string, token: string, mode: "soft"
 }
 
 export async function restoreReview(reviewId: string, token: string) {
-  const response = await fetch(`${getApiUrl()}/reviews/${reviewId}`, {
+  const response = await apiFetch(`${getApiUrl()}/reviews/${reviewId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

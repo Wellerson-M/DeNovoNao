@@ -445,7 +445,7 @@ const headerButtonClass =
 
 export function HomePage() {
   const { isOnline } = useConnection();
-  const { session, logout, loginWithToken } = useAuth();
+  const { session, logout, loginWithToken, sessionExpired, dismissSessionExpired } = useAuth();
   const { withLoader } = useUi();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
@@ -710,8 +710,37 @@ export function HomePage() {
           </div>
         </section>
 
+        {sessionExpired ? (
+          <div className="animate-fade-up flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]">
+            <span>Sua sessão expirou. Entre de novo para ver e publicar as suas avaliações.</span>
+            <span className="flex gap-2">
+              <button type="button" onClick={dismissSessionExpired} className="rounded-full px-3 py-1.5 font-semibold">
+                Agora não
+              </button>
+              <Link href="/login" onClick={dismissSessionExpired} className="btn-primary rounded-full px-4 py-1.5 font-semibold">
+                Entrar
+              </Link>
+            </span>
+          </div>
+        ) : null}
+
         {error ? (
-          <div className="rounded-[20px] border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]">{error}</div>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]">
+            <span>
+              {/fetch|network|load failed/i.test(error)
+                ? "Não foi possível falar com o servidor. Ele pode estar acordando; tente de novo em alguns segundos."
+                : error}
+            </span>
+            <button
+              type="button"
+              onClick={() => void handleRefresh()}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--danger-border)] px-4 py-1.5 font-semibold disabled:opacity-60"
+            >
+              <RefreshCcw className={clsx("h-4 w-4", isRefreshing && "animate-spin")} />
+              Tentar de novo
+            </button>
+          </div>
         ) : null}
 
         <div className="flex flex-wrap items-end justify-between gap-2">

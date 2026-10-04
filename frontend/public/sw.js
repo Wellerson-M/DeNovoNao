@@ -1,4 +1,4 @@
-const CACHE_NAME = "avalieitor-v6";
+const CACHE_NAME = "avalieitor-v7";
 const STATIC_ASSETS = ["/manifest.json", "/icon-192.png", "/icon-512.png", "/doodles.svg"];
 
 function isLocalHostname(hostname) {
@@ -106,7 +106,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(staleWhileRevalidate(event.request));
+  // Arquivos do build têm hash no nome e nunca mudam: podem vir do cache.
+  // Ícones e o fundo também. Todo o resto (dados de navegação do Next, ?_rsc=...)
+  // vai direto para a rede, para nunca misturar versões depois de um deploy.
+  const isImmutableAsset = requestUrl.pathname.startsWith("/_next/static/");
+  const isStaticAsset = STATIC_ASSETS.includes(requestUrl.pathname) && !requestUrl.search;
+
+  if (isImmutableAsset || isStaticAsset) {
+    event.respondWith(staleWhileRevalidate(event.request));
+  }
 });
 
 self.addEventListener("message", (event) => {

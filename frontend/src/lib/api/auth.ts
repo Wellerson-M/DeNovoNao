@@ -1,4 +1,5 @@
-﻿import type { AuthResponse } from "@/lib/types";
+import { apiFetch } from "@/lib/api/session";
+import type { AuthResponse } from "@/lib/types";
 
 function getApiUrl() {
   if (process.env.NEXT_PUBLIC_API_URL) {
@@ -27,7 +28,7 @@ async function readErrorMessage(response: Response, fallback: string) {
 }
 
 export async function loginUser(input: LoginRequest) {
-  const response = await fetch(`${getApiUrl()}/auth/login`, {
+  const response = await apiFetch(`${getApiUrl()}/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -43,7 +44,7 @@ export async function loginUser(input: LoginRequest) {
 }
 
 export async function registerUser(input: RegisterRequest) {
-  const response = await fetch(`${getApiUrl()}/auth/register`, {
+  const response = await apiFetch(`${getApiUrl()}/auth/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -67,7 +68,7 @@ export async function updateMyProfile(
   },
   token: string
 ) {
-  const response = await fetch(`${getApiUrl()}/auth/me`, {
+  const response = await apiFetch(`${getApiUrl()}/auth/me`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
