@@ -350,7 +350,7 @@ function ProfileModal({
     setMessage(null);
 
     try {
-      const response = await withLoader(updateMyProfile(payload, session.token), 360);
+      const response = await withLoader(updateMyProfile(payload, session.token));
       loginWithToken(response.token);
       setCurrentPassword("");
       setNewPassword("");
@@ -456,7 +456,7 @@ const headerButtonClass =
 export function HomePage() {
   const { isOnline } = useConnection();
   const { session, logout, loginWithToken } = useAuth();
-  const { showLoaderFor, withLoader } = useUi();
+  const { withLoader } = useUi();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query.trim(), SEARCH_DEBOUNCE_MS);
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
@@ -508,7 +508,7 @@ export function HomePage() {
   async function handleRefresh() {
     setIsRefreshing(true);
     try {
-      await withLoader(reload(), 420);
+      await reload();
     } finally {
       setIsRefreshing(false);
     }
@@ -560,10 +560,7 @@ export function HomePage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    showLoaderFor(260);
-                    toggleTheme();
-                  }}
+                  onClick={toggleTheme}
                   className={headerButtonClass}
                   aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
                   title={theme === "dark" ? "Tema claro" : "Tema escuro"}
@@ -574,7 +571,7 @@ export function HomePage() {
                 </button>
 
                 {session?.role === 2 ? (
-                  <Link href="/admin" onClick={() => showLoaderFor(420)} className={headerButtonClass} aria-label="Área administrativa" title="Admin">
+                  <Link href="/admin" className={headerButtonClass} aria-label="Área administrativa" title="Admin">
                     <Shield className="h-4 w-4" />
                     <span className="hidden sm:inline">Admin</span>
                   </Link>
@@ -594,10 +591,7 @@ export function HomePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        showLoaderFor(320);
-                        logout();
-                      }}
+                      onClick={logout}
                       className={headerButtonClass}
                       aria-label="Sair"
                       title="Sair"
@@ -607,7 +601,7 @@ export function HomePage() {
                     </button>
                   </>
                 ) : (
-                  <Link href="/login" onClick={() => showLoaderFor(420)} className="btn-primary inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold">
+                  <Link href="/login" className="btn-primary inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-semibold">
                     <LogIn className="h-4 w-4" />
                     Entrar
                   </Link>

@@ -34,7 +34,7 @@ export function UiProvider({ children }: { children: React.ReactNode }) {
   );
 
   const withLoader = useCallback(
-    async <T,>(task: Promise<T>, minimumMs = 450) => {
+    async <T,>(task: Promise<T>, minimumMs = 0) => {
       const startedAt = Date.now();
       setIsBusy(true);
       clearBusyTimer();

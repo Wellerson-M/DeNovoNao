@@ -103,7 +103,6 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
             .map((item) => item.trim())
             .filter(Boolean),
         }),
-        420
       );
 
       setMessage({

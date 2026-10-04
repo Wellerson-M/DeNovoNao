@@ -5,7 +5,6 @@ import Link from "next/link";
 import clsx from "clsx";
 import { CalendarDays, LoaderCircle, Search, ShieldAlert, Trash2, UserRoundCog } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useUi } from "@/contexts/ui-context";
 import {
   deleteAdminUser,
   fetchAdminReviews,
@@ -104,7 +103,6 @@ function DetailReviewCard({
 
 export function AdminPage() {
   const { session } = useAuth();
-  const { showLoaderFor } = useUi();
   const [tab, setTab] = useState<AdminTab>("users");
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
@@ -372,7 +370,7 @@ export function AdminPage() {
               </div>
             </div>
 
-            <Link href="/" onClick={() => showLoaderFor(420)} className="mt-6 inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
+            <Link href="/" className="mt-6 inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
               Voltar ao feed
             </Link>
           </section>
@@ -395,7 +393,7 @@ export function AdminPage() {
               </p>
             </div>
 
-            <Link href="/" onClick={() => showLoaderFor(420)} className="inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
+            <Link href="/" className="inline-flex rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2 text-sm text-[var(--text-soft)]">
               Voltar ao feed
             </Link>
           </div>

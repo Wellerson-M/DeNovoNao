@@ -1,0 +1,16 @@
+# Mantém a API do Render acordada: no plano gratuito ela dorme após 15 min sem uso
+# e o primeiro acesso depois disso demora 30-60s. O GitHub pode atrasar alguns minutos.
+name: Manter API acordada
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping /api/health
+        run: curl -fsS --max-time 90 https://denovonao.onrender.com/api/health

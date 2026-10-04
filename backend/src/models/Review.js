@@ -77,6 +77,9 @@ const reviewSchema = new Schema(
   }
 );
 
+// Feed: filtra por ativas e ordena pelas mais recentes.
+reviewSchema.index({ active: 1, createdAt: -1 });
+
 reviewSchema.index({
   placeName: "text",
   locationLabel: "text",
