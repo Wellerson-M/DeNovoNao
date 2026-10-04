@@ -43,6 +43,7 @@ export async function adminOverviewController(_request: Request, response: Respo
 
   try {
     const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const [totalReviews, activeReviews, trashedReviews, privateReviews, totalUsers, admins, usersWithoutCouple, newReviews, failedLogins] =
       await Promise.all([
@@ -57,10 +58,30 @@ export async function adminOverviewController(_request: Request, response: Respo
         AuditLog.countDocuments({ action: "auth.login_failed", createdAt: { $gte: last7Days } }),
       ]);
 
+    // Sinal de ataque: muitas falhas recentes e de onde vieram.
+    const [failedLogins24h, suspended, offenders] = await Promise.all([
+      AuditLog.countDocuments({ action: "auth.login_failed", createdAt: { $gte: last24h } }),
+      User.countDocuments({ active: false }),
+      AuditLog.aggregate([
+        { $match: { action: "auth.login_failed", createdAt: { $gte: last24h } } },
+        { $group: { _id: { ip: "$ip", login: "$actorLogin" }, count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+      ]),
+    ]);
+
     return response.status(200).json({
       reviews: { total: totalReviews, active: activeReviews, trashed: trashedReviews, private: privateReviews, last7Days: newReviews },
-      users: { total: totalUsers, admins, withoutCouple: usersWithoutCouple },
-      security: { failedLogins7Days: failedLogins },
+      users: { total: totalUsers, admins, withoutCouple: usersWithoutCouple, suspended },
+      security: {
+        failedLogins7Days: failedLogins,
+        failedLogins24h,
+        topOffenders: (offenders as Array<{ _id: { ip?: string; login?: string }; count: number }>).map((row) => ({
+          ip: row._id?.ip || "desconhecido",
+          login: row._id?.login || "",
+          count: row.count,
+        })),
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro inesperado";

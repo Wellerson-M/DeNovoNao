@@ -15,6 +15,8 @@ type AdminReviewsResponse = {
     visitedAt: string;
     isPublic: boolean;
     active: boolean;
+    priceAmount?: number | null;
+    priceNote?: string;
     createdByUserId?: string | null;
     createdByName?: string | null;
     publisherLabel?: string | null;
@@ -71,6 +73,8 @@ function mapReview(review: AdminReviewsResponse["items"][number]): ReviewRecord 
     visitedAt: review.visitedAt,
     isPublic: review.isPublic,
     active: review.active,
+    priceAmount: typeof review.priceAmount === "number" ? review.priceAmount : null,
+    priceNote: typeof review.priceNote === "string" ? review.priceNote : "",
     createdByUserId: typeof review.createdByUserId === "string" ? review.createdByUserId : null,
     createdByName: typeof review.createdByName === "string" ? review.createdByName : null,
     publisherLabel: typeof review.publisherLabel === "string" ? review.publisherLabel : null,
@@ -176,8 +180,12 @@ export async function deleteAdminUser(token: string, userId: string) {
 
 export type AdminOverview = {
   reviews: { total: number; active: number; trashed: number; private: number; last7Days: number };
-  users: { total: number; admins: number; withoutCouple: number };
-  security: { failedLogins7Days: number };
+  users: { total: number; admins: number; withoutCouple: number; suspended: number };
+  security: {
+    failedLogins7Days: number;
+    failedLogins24h: number;
+    topOffenders: Array<{ ip: string; login: string; count: number }>;
+  };
 };
 
 export type AuditLogEntry = {
@@ -275,4 +283,55 @@ export async function purgeOldData(token: string, target: "trash" | "logs", befo
   }
 
   return (await response.json()) as { removed: number };
+}
+
+export async function revokeUserSessions(token: string, userId: string) {
+  const response = await apiFetch(`${getApiUrl()}/admin/users/${userId}/revoke-sessions`, {
+    method: "POST",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível encerrar as sessões"));
+  }
+}
+
+export async function createResetLink(token: string, userId: string) {
+  const response = await apiFetch(`${getApiUrl()}/admin/users/${userId}/reset-link`, {
+    method: "POST",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível gerar o link"));
+  }
+
+  const data = (await response.json()) as { token: string; name: string; login: string; expiresInHours: number };
+  return { ...data, url: `${window.location.origin}/redefinir-senha?token=${data.token}` };
+}
+
+/** Baixa o CSV das ocorrências respeitando os filtros da tela. */
+export async function downloadLogsCsv(token: string, query = "", action = "all") {
+  const params = new URLSearchParams({ action });
+  if (query.trim()) {
+    params.set("q", query.trim());
+  }
+
+  const response = await apiFetch(`${getApiUrl()}/admin/logs/export?${params.toString()}`, {
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível exportar"));
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `ocorrencias-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }

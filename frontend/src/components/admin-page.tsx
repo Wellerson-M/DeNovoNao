@@ -11,6 +11,7 @@ import {
   ChevronRight,
   LoaderCircle,
   MapPin,
+  Pencil,
   RotateCcw,
   Search,
   ShieldAlert,
@@ -24,6 +25,8 @@ import { Chip, EmptyState, LoadingRows, SearchField } from "@/components/admin/u
 import { LogsPanel } from "@/components/admin/logs-panel";
 import { OverviewPanel } from "@/components/admin/overview-panel";
 import { TrashPanel } from "@/components/admin/trash-panel";
+import { ReviewEditor } from "@/components/admin/review-editor";
+import { UserActions } from "@/components/admin/user-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
@@ -154,11 +157,13 @@ function ReviewDetail({
   busyId,
   onDelete,
   onRestore,
+  onEdit,
 }: {
   review: ReviewRecord;
   busyId: string | null;
   onDelete: (review: ReviewRecord, mode: "soft" | "hard") => Promise<void>;
   onRestore: (review: ReviewRecord) => Promise<void>;
+  onEdit: () => void;
 }) {
   const [confirmHard, setConfirmHard] = useState(false);
   const isBusy = busyId === review.id;
@@ -281,6 +286,14 @@ function ReviewDetail({
             </button>
           </div>
         )}
+        <button
+          type="button"
+          onClick={onEdit}
+          className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text-soft)] hover:border-[var(--accent-soft)]"
+        >
+          <Pencil className="h-4 w-4" />
+          Editar avaliação
+        </button>
         <p className="text-xs text-[var(--muted)]">Na lixeira, a avaliação some do feed mas pode ser restaurada.</p>
       </div>
     </article>
@@ -333,6 +346,7 @@ export function AdminPage() {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
   const [busyReviewId, setBusyReviewId] = useState<string | null>(null);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
   const [reviewPage, setReviewPage] = useState(1);
   const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
@@ -566,7 +580,26 @@ export function AdminPage() {
   }
 
   const reviewDetail = selectedReview ? (
-    <ReviewDetail review={selectedReview} busyId={busyReviewId} onDelete={handleDelete} onRestore={handleRestore} />
+    editingReviewId === selectedReview.id ? (
+      <ReviewEditor
+        review={selectedReview}
+        token={adminToken}
+        notify={notify}
+        onCancel={() => setEditingReviewId(null)}
+        onSaved={() => {
+          setEditingReviewId(null);
+          void refreshAfterReviewChange();
+        }}
+      />
+    ) : (
+      <ReviewDetail
+        review={selectedReview}
+        busyId={busyReviewId}
+        onDelete={handleDelete}
+        onRestore={handleRestore}
+        onEdit={() => setEditingReviewId(selectedReview.id)}
+      />
+    )
   ) : null;
 
   const userReviewsPanel = selectedUser ? (
@@ -689,6 +722,7 @@ export function AdminPage() {
                       isSelected={selectedReviewId === review.id}
                       onSelect={() => {
                         setSelectedReviewId(review.id);
+                        setEditingReviewId(null);
                         reviewSheet.open();
                       }}
                     />
@@ -741,6 +775,7 @@ export function AdminPage() {
                         <span className="flex flex-wrap items-center gap-1.5">
                           <span className="truncate font-bold">{user.name}</span>
                           <Chip tone={user.role === 2 ? "accent" : "neutral"}>{ROLE_LABELS[user.role] ?? `Nível ${user.role}`}</Chip>
+                          {user.active === false ? <Chip tone="danger">Suspenso</Chip> : null}
                         </span>
                         <span className="mt-0.5 block truncate text-sm text-[var(--muted-strong)]">
                           {user.login ? `@${user.login}` : user.email ?? "Sem login"}
@@ -780,6 +815,19 @@ export function AdminPage() {
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
+
+                    <UserActions
+                      user={user}
+                      token={adminToken}
+                      notify={notify}
+                      onUpdated={(updated) => {
+                        setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+                        if (selectedUser?.id === updated.id) {
+                          setSelectedUser(updated);
+                        }
+                        setDataVersion((current) => current + 1);
+                      }}
+                    />
 
                     {confirmDeleteUserId === user.id ? (
                       <div className="animate-fade-up grid gap-3 rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] p-3">

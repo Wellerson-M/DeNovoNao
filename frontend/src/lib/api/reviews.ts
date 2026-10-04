@@ -14,6 +14,8 @@ type ServerReview = {
   visitedAt: string;
   isPublic: boolean;
   active: boolean;
+  priceAmount?: number | null;
+  priceNote?: string;
   createdByUserId?: string | null;
   createdByName?: string | null;
   publisherLabel?: string | null;
@@ -62,6 +64,8 @@ function mapReview(review: ServerReview): ReviewRecord {
     visitedAt: review.visitedAt,
     isPublic: review.isPublic,
     active: review.active,
+    priceAmount: typeof review.priceAmount === "number" ? review.priceAmount : null,
+    priceNote: typeof review.priceNote === "string" ? review.priceNote : "",
     createdByUserId: typeof review.createdByUserId === "string" ? review.createdByUserId : null,
     createdByName: typeof review.createdByName === "string" ? review.createdByName : null,
     publisherLabel: typeof review.publisherLabel === "string" ? review.publisherLabel : null,

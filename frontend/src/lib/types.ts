@@ -34,6 +34,10 @@ export type ReviewInput = {
   criticalWarnings: string[];
   visitedAt: string;
   isPublic: boolean;
+  /** Valor gasto por pessoa, em reais. Opcional. */
+  priceAmount: number | null;
+  /** Texto livre sobre os valores, ex.: "X-burguer 32, chopp 18". */
+  priceNote: string;
 };
 
 export type ReviewRecord = ReviewInput & {
@@ -49,12 +53,16 @@ export type ReviewRecord = ReviewInput & {
   localOnly?: boolean;
 };
 
+export type PriceRange = { min: number; max: number; count: number };
+
 export type ReviewsMeta = {
   page: number;
   pageSize: number;
   total: number;
   hasMore: boolean;
   averagePlaceRating: number | null;
+  /** Faixa de valores por lugar (chave em minúsculas). */
+  priceRanges?: Record<string, PriceRange>;
 };
 
 export type ReviewsResponse = {

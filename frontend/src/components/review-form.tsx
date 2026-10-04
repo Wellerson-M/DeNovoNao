@@ -25,6 +25,8 @@ function createEmptyForm(): ReviewInput {
     criticalWarnings: [],
     visitedAt: todayLocalIso(),
     isPublic: true,
+    priceAmount: null,
+    priceNote: "",
   };
 }
 
@@ -82,6 +84,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
   const { withLoader } = useUi();
   const [form, setForm] = useState<ReviewInput>(createEmptyForm);
   const [warningsText, setWarningsText] = useState("");
+  const [priceText, setPriceText] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -98,6 +101,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
           locationLabel: form.locationLabel.trim(),
           opinionOne: form.opinionOne.trim(),
           opinionTwo: form.opinionTwo.trim(),
+          priceAmount: priceText.trim() ? Number(priceText.replace(",", ".")) : null,
           criticalWarnings: warningsText
             .split(",")
             .map((item) => item.trim())
@@ -115,6 +119,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
 
       setForm(createEmptyForm());
       setWarningsText("");
+      setPriceText("");
     } catch (error) {
       setMessage({
         tone: "error",
@@ -243,6 +248,43 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
           placeholder="Ex: veio frio, demorou 1h (separe por vírgula)"
         />
       </label>
+
+      <fieldset className="grid gap-3 rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4">
+        <legend className="px-1 text-sm font-medium text-[var(--muted-strong)]">
+          Quanto custou <span className="font-normal text-[var(--muted)]">(opcional)</span>
+        </legend>
+
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,160px)_1fr]">
+          <label className="grid gap-1.5">
+            <span className="text-xs text-[var(--muted)]">Valor por pessoa</span>
+            <div className="flex items-center gap-2 rounded-xl border border-[var(--field-border)] bg-[var(--panel)] px-3 focus-within:border-[var(--accent-soft)] focus-within:shadow-[0_0_0_3px_var(--accent-ring)]">
+              <span className="text-sm font-semibold text-[var(--muted)]">R$</span>
+              <input
+                inputMode="decimal"
+                value={priceText}
+                onChange={(event) => setPriceText(event.target.value.replace(/[^0-9.,]/g, ""))}
+                className="w-full min-w-0 bg-transparent py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+                placeholder="45"
+              />
+            </div>
+          </label>
+
+          <label className="grid gap-1.5">
+            <span className="text-xs text-[var(--muted)]">O que pediu e quanto foi</span>
+            <input
+              value={form.priceNote}
+              onChange={(event) => setForm((current) => ({ ...current, priceNote: event.target.value }))}
+              className={clsx(fieldClass, "py-3")}
+              placeholder="X-burguer 32, chopp 18"
+              maxLength={200}
+            />
+          </label>
+        </div>
+
+        <p className="text-xs text-[var(--muted)]">
+          Com valor preenchido em mais de uma visita, o app mostra a faixa de preços do lugar.
+        </p>
+      </fieldset>
 
       <ToggleRow
         title="Privado"

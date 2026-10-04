@@ -17,6 +17,11 @@ export type AuditAction =
   | "user.delete"
   | "user.profile_update"
   | "user.password_change"
+  | "user.password_reset"
+  | "user.sessions_revoked"
+  | "user.reset_link"
+  | "user.suspend"
+  | "user.reactivate"
   | "auth.login"
   | "auth.login_failed";
 

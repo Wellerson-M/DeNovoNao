@@ -148,6 +148,8 @@ function normalizeReviewDocument(review: Record<string, unknown>) {
         ? review.redFlags
         : [],
     isPublic: typeof review.isPublic === "boolean" ? review.isPublic : true,
+    priceAmount: typeof review.priceAmount === "number" ? review.priceAmount : null,
+    priceNote: typeof review.priceNote === "string" ? review.priceNote : "",
     active: typeof review.active === "boolean" ? review.active : true,
     createdByUserId:
       typeof review.createdByUserId === "string" && review.createdByUserId.trim()
@@ -193,6 +195,45 @@ async function attachPublisherLabels(items: Array<ReturnType<typeof normalizeRev
     ...item,
     publisherLabel: item.publisherLabel ?? namesByCouple.get(item.id_casal)?.join(" + ") ?? null,
   }));
+}
+
+/**
+ * Faixa de valores por lugar, considerando só avaliações públicas e ativas.
+ * O app usa para mostrar "de X a Y" quando há mais de um registro com valor.
+ */
+async function buildPriceRanges(items: Array<{ placeName: string }>) {
+  const names = Array.from(new Set(items.map((item) => item.placeName).filter(Boolean)));
+
+  if (names.length === 0) {
+    return {} as Record<string, { min: number; max: number; count: number }>;
+  }
+
+  const grouped = await Review.aggregate([
+    {
+      $match: {
+        active: true,
+        isPublic: true,
+        priceAmount: { $gt: 0 },
+        placeName: { $in: names },
+      },
+    },
+    {
+      $group: {
+        _id: { $toLower: "$placeName" },
+        min: { $min: "$priceAmount" },
+        max: { $max: "$priceAmount" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const ranges: Record<string, { min: number; max: number; count: number }> = {};
+
+  for (const row of grouped as Array<{ _id: string; min: number; max: number; count: number }>) {
+    ranges[row._id] = { min: row.min, max: row.max, count: row.count };
+  }
+
+  return ranges;
 }
 
 export async function listReviewsController(request: Request, response: Response) {
@@ -241,6 +282,7 @@ export async function listReviewsController(request: Request, response: Response
 
     const normalizedItems = items.map(normalizeReviewDocument);
     const itemsWithLabels = await attachPublisherLabels(normalizedItems);
+    const priceRanges = await buildPriceRanges(normalizedItems);
 
     response.json({
       items: itemsWithLabels,
@@ -250,6 +292,7 @@ export async function listReviewsController(request: Request, response: Response
         total,
         hasMore: skip + items.length < total,
         averagePlaceRating,
+        priceRanges,
       },
     });
   } catch (error) {

@@ -281,6 +281,7 @@ export async function updateAdminUserController(request: Request, response: Resp
 
     const previousCoupleId = user.id_casal == null ? null : String(user.id_casal).trim() || null;
     const previousRole = user.role;
+    const previousActive = user.active !== false;
     Object.assign(user, patch);
     await user.save();
 
@@ -298,8 +299,10 @@ export async function updateAdminUserController(request: Request, response: Resp
       );
     }
 
+    const suspensionChanged = patch.active !== undefined && patch.active !== previousActive;
+
     await recordAudit(request, {
-      action: "user.update",
+      action: suspensionChanged ? (user.active === false ? "user.suspend" : "user.reactivate") : "user.update",
       targetType: "user",
       targetId: String(user._id),
       targetLabel: user.login ?? user.name ?? "",

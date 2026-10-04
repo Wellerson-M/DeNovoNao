@@ -9,7 +9,28 @@ type ReviewBody = {
   visitedAt?: unknown;
   isPublic?: unknown;
   active?: unknown;
+  priceAmount?: unknown;
+  priceNote?: unknown;
 };
+
+/** Valor em reais: aceita número, "32,50" ou vazio. Recusa valor absurdo. */
+function asPrice(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const amount = typeof value === "string" ? Number(value.replace(",", ".")) : Number(value);
+
+  if (!Number.isFinite(amount) || amount < 0) {
+    throw new Error("O valor precisa ser um número maior ou igual a zero.");
+  }
+
+  if (amount > 100000) {
+    throw new Error("Esse valor parece alto demais.");
+  }
+
+  return Math.round(amount * 100) / 100;
+}
 
 function asString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
@@ -65,6 +86,8 @@ export function parseCreateReviewInput(input: ReviewBody) {
     criticalWarnings,
     visitedAt,
     isPublic,
+    priceAmount: asPrice(input.priceAmount),
+    priceNote: typeof input.priceNote === "string" ? input.priceNote.trim().slice(0, 200) : "",
     active: true,
   };
 }
@@ -125,6 +148,14 @@ export function parseUpdateReviewInput(input: ReviewBody) {
       throw new Error("A data da visita precisa ser válida.");
     }
     patch.visitedAt = visitedAt;
+  }
+
+  if (input.priceAmount !== undefined) {
+    patch.priceAmount = asPrice(input.priceAmount);
+  }
+
+  if (input.priceNote !== undefined) {
+    patch.priceNote = typeof input.priceNote === "string" ? input.priceNote.trim().slice(0, 200) : "";
   }
 
   // Restaurar da lixeira (o controller só permite para admin).

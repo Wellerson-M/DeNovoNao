@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { LoaderCircle, UserRound } from "lucide-react";
-import { fetchAuditLogs, purgeOldData, type AuditLogEntry } from "@/lib/api/admin";
+import { Download, LoaderCircle, UserRound } from "lucide-react";
+import { downloadLogsCsv, fetchAuditLogs, purgeOldData, type AuditLogEntry } from "@/lib/api/admin";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { Chip, EmptyState, FilterRow, LoadingRows, SearchField } from "@/components/admin/ui";
 import { ACTION_FILTERS, ACTION_TONES, describeAction, describeDetails } from "@/components/admin/audit-labels";
@@ -73,6 +73,7 @@ export function LogsPanel({
   const [action, setAction] = useState(initialFilter);
   const [purgeDays, setPurgeDays] = useState<number | null>(null);
   const [isPurging, setIsPurging] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const debouncedQuery = useDebouncedValue(query.trim());
 
   const load = useCallback(
@@ -121,6 +122,22 @@ export function LogsPanel({
     <div className="grid gap-4">
       <SearchField value={query} onChange={setQuery} placeholder="Buscar por pessoa, local ou ação" />
       <FilterRow options={ACTION_FILTERS} value={action} onChange={setAction} label="Filtrar ocorrências" />
+
+      <button
+        type="button"
+        disabled={isExporting}
+        onClick={() => {
+          setIsExporting(true);
+          downloadLogsCsv(token, query, action)
+            .then(() => notify("success", "Arquivo baixado."))
+            .catch((error: unknown) => notify("error", error instanceof Error ? error.message : "Não foi possível exportar"))
+            .finally(() => setIsExporting(false));
+        }}
+        className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-2.5 text-sm font-semibold text-[var(--text-soft)] hover:border-[var(--accent-soft)] disabled:opacity-70"
+      >
+        {isExporting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+        Baixar em CSV (com os filtros atuais)
+      </button>
 
       <section className="grid gap-3 rounded-[20px] border border-[var(--panel-border)] bg-[var(--panel)] p-4">
         <div>

@@ -35,6 +35,11 @@ function ProvidersRuntime({ children }: { children: React.ReactNode }) {
   const { isCheckingUpdate } = usePwa();
 
   useEffect(() => {
+    // Esconde a tela de abertura assim que o app está de pé.
+    document.documentElement.classList.add("app-ready");
+  }, []);
+
+  useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
       void clearLegacyOfflineCaches();
       return;
