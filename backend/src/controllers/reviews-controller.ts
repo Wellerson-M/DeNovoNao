@@ -5,6 +5,7 @@ import { Review } from "../models/Review.js";
 // @ts-ignore
 import { User } from "../models/User.js";
 import { getReviewDriver } from "../data/review-store.js";
+import { escapeRegex } from "../utils/escape-regex.js";
 import { parseCreateReviewInput, parseDeleteMode, parseUpdateReviewInput } from "../utils/parse-review-input.js";
 
 const PAGE_SIZE = 10;
@@ -47,8 +48,8 @@ function buildFeedFilter(request: Request) {
   if (query) {
     extraFilters.push({
       $or: [
-        { placeName: { $regex: query, $options: "i" } },
-        { locationLabel: { $regex: query, $options: "i" } },
+        { placeName: { $regex: escapeRegex(query), $options: "i" } },
+        { locationLabel: { $regex: escapeRegex(query), $options: "i" } },
       ],
     });
   }
@@ -93,12 +94,10 @@ async function ensureMongo(response: Response) {
 }
 
 function normalizeReviewDocument(review: Record<string, unknown>) {
+  // Avaliações da versão antiga (sem login) só têm `createdBy: "casal"`, que não é
+  // o nome de ninguém; nesses casos o feed não mostra autoria.
   const createdByName =
-    typeof review.createdByName === "string" && review.createdByName.trim()
-      ? review.createdByName.trim()
-      : typeof review.createdBy === "string" && review.createdBy.trim()
-        ? review.createdBy.trim()
-        : null;
+    typeof review.createdByName === "string" && review.createdByName.trim() ? review.createdByName.trim() : null;
 
   return {
     _id: review._id,
