@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
 import { useUi } from "@/contexts/ui-context";
 import { loginUser, registerUser } from "@/lib/api/auth";
-import { LogoMark, Wordmark } from "@/components/brand";
+import { Wordmark } from "@/components/brand";
 
 type AuthMode = "login" | "register";
 
@@ -59,7 +59,6 @@ export function LoginPage() {
         <div className="grid w-full gap-8 lg:grid-cols-[1.2fr_0.8fr]">
           <section className="relative isolate overflow-hidden rounded-[36px] border border-[var(--hero-border)] bg-[image:var(--hero-bg)] p-6 shadow-[var(--hero-shadow)] backdrop-blur-2xl sm:p-8">
             <div className="hero-glow -z-10" aria-hidden="true" />
-            <LogoMark className="pointer-events-none absolute -bottom-12 -right-10 -z-10 h-64 w-64 rotate-[-14deg] text-[var(--text)] opacity-[0.06]" />
             <div className="flex items-center justify-between gap-4">
               <Wordmark />
               <div
