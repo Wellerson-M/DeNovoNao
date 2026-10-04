@@ -155,7 +155,7 @@ npm run dev        # frontend em http://localhost:3000 e API em http://localhost
 |---|---|---|
 | `PORT` | Porta da API | `4000` |
 | `MONGODB_URI` | Conexão com o MongoDB | `mongodb://127.0.0.1:27017/avalieitor` |
-| `CLIENT_ORIGIN` | Origens liberadas no CORS (separadas por vírgula) | `http://localhost:3000,http://127.0.0.1:3000` |
+| `CLIENT_ORIGIN` | Origens liberadas no CORS (separadas por vírgula; aceita `*` como curinga, ex.: `https://<projeto>-*.vercel.app`) | `http://localhost:3000,http://127.0.0.1:3000` |
 | `STORAGE_MODE` | `auto` tenta o Mongo; `memory` desliga o Mongo | `auto` |
 | `JWT_SECRET` | Segredo para assinar os tokens — **troque em produção** | `change-me` |
 
