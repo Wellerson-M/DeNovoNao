@@ -230,6 +230,9 @@ alguns itens aparecem como "PULOU" até o limite expirar (10 min) ou a API reini
 Proteções em vigor:
 
 - Senhas com bcrypt; o login não revela se a conta existe e trava após 15 tentativas em 10 min.
+- O bloqueio conta por visitante (usa `CF-Connecting-IP`, preenchido pelo Cloudflare), para não
+  derrubar o login de todo mundo. Quem alcançasse a origem no Render sem passar pelo Cloudflare
+  poderia forjar esse cabeçalho e escapar do limite.
 - Token recusado quando o usuário foi apagado ou desativado, mesmo antes de expirar.
 - `active` (restaurar da lixeira) só é aceito de admin.
 - Avaliação sem `id_casal` não pertence a ninguém: só admin edita ou exclui.

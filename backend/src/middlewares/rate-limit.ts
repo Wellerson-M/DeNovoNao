@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { clientIp } from "../utils/client-ip.js";
 
 type Bucket = { count: number; resetAt: number };
 
@@ -31,7 +32,7 @@ export function rateLimit({
       }
     }
 
-    const key = request.ip ?? "desconhecido";
+    const key = clientIp(request);
     const bucket = buckets.get(key);
 
     if (!bucket || bucket.resetAt <= now) {
