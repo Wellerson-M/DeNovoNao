@@ -5,6 +5,7 @@ import { Review } from "../models/Review.js";
 // @ts-ignore
 import { User } from "../models/User.js";
 import { getReviewDriver } from "../data/review-store.js";
+import { escapeRegex } from "../utils/escape-regex.js";
 import { parseCreateReviewInput, parseDeleteMode, parseUpdateReviewInput } from "../utils/parse-review-input.js";
 
 const PAGE_SIZE = 10;
@@ -47,8 +48,8 @@ function buildFeedFilter(request: Request) {
   if (query) {
     extraFilters.push({
       $or: [
-        { placeName: { $regex: query, $options: "i" } },
-        { locationLabel: { $regex: query, $options: "i" } },
+        { placeName: { $regex: escapeRegex(query), $options: "i" } },
+        { locationLabel: { $regex: escapeRegex(query), $options: "i" } },
       ],
     });
   }

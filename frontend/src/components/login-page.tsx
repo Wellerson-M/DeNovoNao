@@ -53,16 +53,16 @@ export function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text)]">
+    <main className="min-h-screen text-[var(--text)]">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-4 py-10 sm:px-6">
         <div className="grid w-full gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <section className="rounded-[36px] border border-[var(--hero-border)] bg-[var(--hero-bg)] p-6 shadow-[var(--hero-shadow)] backdrop-blur-2xl sm:p-8">
+          <section className="rounded-[36px] border border-[var(--hero-border)] bg-[image:var(--hero-bg)] p-6 shadow-[var(--hero-shadow)] backdrop-blur-2xl sm:p-8">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-xs uppercase tracking-[0.34em] text-[var(--muted)]">DeNovoNao</span>
+              <span className="brand-wordmark text-sm uppercase tracking-[0.24em]">DeNovoNao</span>
               <div
                 className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs ${
                   isOnline
-                    ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+                    ? "border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]"
                     : "border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger-text)]"
                 }`}
               >
@@ -111,7 +111,7 @@ export function LoginPage() {
                   className={clsx(
                     "rounded-full px-4 py-2 text-sm font-medium transition",
                     mode === tab.key
-                      ? "bg-[var(--accent)] text-white shadow-[0_8px_20px_rgba(124,1,22,0.18)]"
+                      ? "btn-primary"
                       : "text-[var(--text-soft)]"
                   )}
                 >
@@ -141,6 +141,8 @@ export function LoginPage() {
                   onChange={(event) => setLogin(event.target.value.toLowerCase())}
                   className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                   placeholder="seu.login"
+                  autoCapitalize="none"
+                  autoComplete="username"
                   required
                 />
               </label>
@@ -153,6 +155,7 @@ export function LoginPage() {
                   onChange={(event) => setPassword(event.target.value)}
                   className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
                   placeholder="Mínimo de 6 caracteres"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
                   required
                 />
               </label>
@@ -167,7 +170,7 @@ export function LoginPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-full border border-[var(--accent-soft)] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,1,22,0.22)] hover:-translate-y-0.5 disabled:opacity-70"
+                  className="rounded-full btn-primary px-5 py-3 text-sm font-semibold hover:-translate-y-0.5 disabled:opacity-70"
                 >
                   {isSubmitting ? "Enviando..." : mode === "login" ? "Entrar" : "Criar conta"}
                 </button>

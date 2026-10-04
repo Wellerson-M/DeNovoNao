@@ -1,4 +1,4 @@
-const CACHE_NAME = "avalieitor-v3";
+const CACHE_NAME = "avalieitor-v4";
 const STATIC_ASSETS = ["/manifest.json", "/icon-192.svg", "/icon-512.svg"];
 
 function isLocalHostname(hostname) {

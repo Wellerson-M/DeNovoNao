@@ -357,7 +357,7 @@ export function AdminPage() {
 
   if (!session || session.role < 2) {
     return (
-      <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text)]">
+      <main className="min-h-screen text-[var(--text)]">
         <div className="mx-auto flex min-h-screen max-w-3xl items-center px-4 py-10 sm:px-6">
           <section className="w-full rounded-[32px] border border-[var(--danger-border)] bg-[var(--panel)] p-6 shadow-[var(--panel-shadow)] backdrop-blur-xl">
             <div className="flex items-center gap-3">
@@ -384,7 +384,7 @@ export function AdminPage() {
   const selectedReview = sortedReviews.find((review) => review.id === selectedReviewId) ?? null;
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text)]">
+    <main className="min-h-screen text-[var(--text)]">
       <div className="mx-auto max-w-6xl px-3.5 py-6 sm:px-6 sm:py-10">
         <section className="rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl sm:rounded-[32px] sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -409,7 +409,7 @@ export function AdminPage() {
                 className={clsx(
                   "rounded-full px-4 py-2 text-sm font-medium transition",
                   tab === item.key
-                    ? "bg-[var(--accent)] text-white shadow-[0_8px_20px_rgba(124,1,22,0.18)]"
+                    ? "btn-primary"
                     : "text-[var(--text-soft)]"
                 )}
               >
@@ -484,7 +484,7 @@ export function AdminPage() {
                           type="button"
                           onClick={() => void handleUserSave(user.id)}
                           disabled={savingUserId === user.id}
-                          className="rounded-full border border-[var(--accent-soft)] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-3 text-sm font-semibold text-white disabled:opacity-70"
+                          className="rounded-full btn-primary px-5 py-3 text-sm font-semibold text-white disabled:opacity-70"
                         >
                           {savingUserId === user.id ? "Salvando..." : "Salvar casal"}
                         </button>

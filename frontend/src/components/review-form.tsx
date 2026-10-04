@@ -1,21 +1,78 @@
-﻿"use client";
+"use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import clsx from "clsx";
+import { Star } from "lucide-react";
 import { useUi } from "@/contexts/ui-context";
 import type { ReviewInput } from "@/lib/types";
 
-const emptyForm: ReviewInput = {
-  placeName: "",
-  locationLabel: "",
-  isDelivery: false,
-  placeRating: 4,
-  opinionOne: "",
-  opinionTwo: "",
-  criticalWarnings: [],
-  visitedAt: new Date().toISOString().slice(0, 10),
-  isPublic: true,
-};
+const RATING_LABELS = ["", "Péssimo", "Ruim", "Ok", "Bom", "Excelente"];
+
+function todayLocalIso() {
+  const now = new Date();
+  const offsetMs = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offsetMs).toISOString().slice(0, 10);
+}
+
+function createEmptyForm(): ReviewInput {
+  return {
+    placeName: "",
+    locationLabel: "",
+    isDelivery: false,
+    placeRating: 4,
+    opinionOne: "",
+    opinionTwo: "",
+    criticalWarnings: [],
+    visitedAt: todayLocalIso(),
+    isPublic: true,
+  };
+}
+
+const fieldClass =
+  "w-full rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50";
+
+function ToggleRow({
+  title,
+  description,
+  checked,
+  onToggle,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onToggle}
+      className={clsx(
+        "flex w-full items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left",
+        checked ? "border-[var(--accent-soft)] bg-[var(--accent-glass)]" : "border-[var(--field-border)] bg-[var(--field-bg)] hover:border-[var(--accent-soft)]"
+      )}
+    >
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold text-[var(--text)]">{title}</span>
+        <span className="mt-0.5 block text-xs text-[var(--muted-strong)]">{description}</span>
+      </span>
+      <span
+        className={clsx(
+          "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition",
+          checked ? "bg-[image:var(--accent-gradient)]" : "bg-[var(--panel-hover)] ring-1 ring-inset ring-[var(--field-border)]"
+        )}
+      >
+        <span
+          className={clsx(
+            "inline-block h-5 w-5 rounded-full bg-white shadow transition-transform",
+            checked ? "translate-x-6" : "translate-x-1"
+          )}
+        />
+      </span>
+    </button>
+  );
+}
 
 type ReviewFormProps = {
   onSubmit: (value: ReviewInput) => Promise<{ mode: "online" | "offline" } | void>;
@@ -23,11 +80,10 @@ type ReviewFormProps = {
 
 export function ReviewForm({ onSubmit }: ReviewFormProps) {
   const { withLoader } = useUi();
-  const [form, setForm] = useState<ReviewInput>(emptyForm);
+  const [form, setForm] = useState<ReviewInput>(createEmptyForm);
   const [warningsText, setWarningsText] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const title = useMemo(() => "Nova visita", []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,6 +94,10 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
       const result = await withLoader(
         onSubmit({
           ...form,
+          placeName: form.placeName.trim(),
+          locationLabel: form.locationLabel.trim(),
+          opinionOne: form.opinionOne.trim(),
+          opinionTwo: form.opinionTwo.trim(),
           criticalWarnings: warningsText
             .split(",")
             .map((item) => item.trim())
@@ -46,201 +106,166 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
         420
       );
 
-      setMessage(
-        result?.mode === "offline"
-          ? "Sem conexão. A visita foi salva localmente e será sincronizada depois."
-          : "Visita publicada com sucesso."
-      );
+      setMessage({
+        tone: "success",
+        text:
+          result?.mode === "offline"
+            ? "Sem conexão. A visita foi salva no aparelho e será enviada quando a internet voltar."
+            : "Visita publicada com sucesso.",
+      });
 
-      setForm(emptyForm);
+      setForm(createEmptyForm());
       setWarningsText("");
     } catch (error) {
-      setMessage(
-        error instanceof Error ? `Não foi possível salvar. ${error.message}` : "Não foi possível salvar."
-      );
+      setMessage({
+        tone: "error",
+        text: error instanceof Error ? `Não foi possível salvar. ${error.message}` : "Não foi possível salvar.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="grid gap-5 rounded-[28px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--text)]">{title}</h2>
-          <p className="mt-1 text-sm text-[var(--muted-strong)]">
-            Registre a visita com impressões, nota e avisos importantes.
-          </p>
-        </div>
-      </div>
-
+    <form onSubmit={handleSubmit} className="grid gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2">
-          <span className="text-sm text-[var(--muted-strong)]">Nome do local</span>
+          <span className="text-sm font-medium text-[var(--muted-strong)]">Nome do local</span>
           <input
             required
             value={form.placeName}
             onChange={(event) => setForm((current) => ({ ...current, placeName: event.target.value }))}
-            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+            className={fieldClass}
             placeholder="Ex: Smash do Centro"
+            autoComplete="off"
           />
         </label>
 
         <label className="grid gap-2">
-          <span className="text-sm text-[var(--muted-strong)]">Bairro / cidade</span>
+          <span className="text-sm font-medium text-[var(--muted-strong)]">Bairro / cidade</span>
           <input
             required={!form.isDelivery}
             value={form.locationLabel}
             onChange={(event) => setForm((current) => ({ ...current, locationLabel: event.target.value }))}
             disabled={form.isDelivery}
-            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-60"
-            placeholder={form.isDelivery ? "Desativado para delivery" : "Ex: Centro, Joinville"}
+            className={fieldClass}
+            placeholder={form.isDelivery ? "Não precisa para delivery" : "Ex: Centro, Joinville"}
           />
         </label>
 
-        <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2 sm:items-end">
-          <label className="grid gap-2">
-            <span className="text-sm text-[var(--muted-strong)]">Data da visita</span>
-            <input
-              required
-              type="date"
-              value={form.visitedAt}
-              onChange={(event) => setForm((current) => ({ ...current, visitedAt: event.target.value }))}
-              className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-            />
-          </label>
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-[var(--muted-strong)]">Data da visita</span>
+          <input
+            required
+            type="date"
+            value={form.visitedAt}
+            max={todayLocalIso()}
+            onChange={(event) => setForm((current) => ({ ...current, visitedAt: event.target.value }))}
+            className={clsx(fieldClass, "min-h-[46px]")}
+          />
+        </label>
 
-          <label className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 private">
-            <div>
-              <p className="text-sm font-medium text-[var(--text)]">Delivery</p>
-              <p className="mt-1 text-xs text-[var(--muted-strong)]">
-                Quando ativado, a localização do local é desativada e o feed mostra como delivery.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setForm((current) => ({
-                  ...current,
-                  isDelivery: !current.isDelivery,
-                  locationLabel: current.isDelivery ? current.locationLabel : "",
-                }))
-              }
-              className={clsx(
-                "relative inline-flex h-8 w-14 items-center rounded-full border transition opacity-60 hover:opacity-80",
-                form.isDelivery
-                  ? "border-[var(--accent-soft)] bg-[color-mix(in_srgb,var(--accent)_42%,transparent)]"
-                  : "border-[var(--field-border)] bg-[color-mix(in_srgb,var(--panel)_72%,transparent)]"
-              )}
-              aria-pressed={form.isDelivery}
-            >
-              <span
-                className={clsx(
-                  "inline-block h-6 w-6 transform rounded-full bg-white transition",
-                  form.isDelivery ? "translate-x-7" : "translate-x-1"
-                )}
-              />
-            </button>
-          </label>
+        <div className="grid content-end">
+          <ToggleRow
+            title="Delivery"
+            description="Pedido em casa, sem endereço do local."
+            checked={form.isDelivery}
+            onToggle={() =>
+              setForm((current) => ({
+                ...current,
+                isDelivery: !current.isDelivery,
+                locationLabel: current.isDelivery ? current.locationLabel : "",
+              }))
+            }
+          />
         </div>
       </div>
 
-      <div className="grid gap-2">
-        <span className="text-sm text-[var(--muted-strong)]">Nota do local</span>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <fieldset className="grid gap-2">
+        <legend className="mb-2 text-sm font-medium text-[var(--muted-strong)]">
+          Nota do local · <span className="font-semibold text-[var(--text)]">{RATING_LABELS[form.placeRating]}</span>
+        </legend>
+        <div className="flex items-center gap-1 sm:gap-2" role="radiogroup" aria-label="Nota do local">
           {[1, 2, 3, 4, 5].map((value) => (
             <button
               key={value}
               type="button"
+              role="radio"
+              aria-checked={form.placeRating === value}
+              aria-label={`${value} estrela${value > 1 ? "s" : ""}`}
               onClick={() => setForm((current) => ({ ...current, placeRating: value }))}
-              className={clsx(
-                "rounded-2xl border px-3 py-3 text-sm font-medium shadow-sm hover:-translate-y-0.5 focus:outline-none focus:shadow-[0_0_0_3px_var(--accent-ring)]",
-                form.placeRating === value
-                  ? "border-[var(--accent-soft)] bg-[var(--accent)] text-white"
-                  : "border-[var(--field-border)] bg-[var(--field-bg)] text-[var(--text-soft)] hover:border-[var(--accent-soft)]/60"
-              )}
+              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl text-[var(--star)] hover:bg-[var(--panel-hover)] sm:h-14 sm:w-14"
             >
-              {value} estrela{value > 1 ? "s" : ""}
+              <Star className={clsx("h-8 w-8 sm:h-9 sm:w-9", value <= form.placeRating ? "fill-current" : "opacity-35")} />
             </button>
           ))}
         </div>
-      </div>
+      </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2">
-          <span className="text-sm text-[var(--muted-strong)]">Opinião 1</span>
+          <span className="text-sm font-medium text-[var(--muted-strong)]">Opinião 1</span>
           <textarea
             rows={4}
             value={form.opinionOne}
             onChange={(event) => setForm((current) => ({ ...current, opinionOne: event.target.value }))}
-            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-            placeholder="Primeira opinião, sabor, atendimento..."
+            className={clsx(fieldClass, "resize-y")}
+            placeholder="Sabor, atendimento, preço..."
           />
         </label>
 
         <label className="grid gap-2">
-          <span className="text-sm text-[var(--muted-strong)]">Opinião 2</span>
+          <span className="text-sm font-medium text-[var(--muted-strong)]">
+            Opinião 2 <span className="font-normal text-[var(--muted)]">(opcional)</span>
+          </span>
           <textarea
             rows={4}
             value={form.opinionTwo}
             onChange={(event) => setForm((current) => ({ ...current, opinionTwo: event.target.value }))}
-            className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-            placeholder="Segunda opinião, consistência, custo-benefício..."
+            className={clsx(fieldClass, "resize-y")}
+            placeholder="A opinião da outra pessoa, se quiser."
           />
         </label>
       </div>
 
       <label className="grid gap-2">
-        <span className="text-sm text-[var(--muted-strong)]">Avisos críticos / tags</span>
+        <span className="text-sm font-medium text-[var(--muted-strong)]">Avisos críticos</span>
         <input
           value={warningsText}
           onChange={(event) => setWarningsText(event.target.value)}
-          className="rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-          placeholder="Separados por vírgula"
+          className={fieldClass}
+          placeholder="Ex: veio frio, demorou 1h (separe por vírgula)"
         />
       </label>
 
-      <label className="flex items-center justify-between gap-3 rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-3 private">
-        <div>
-          <p className="text-sm font-medium text-[var(--text)]">Privado</p>
-          <p className="mt-1 text-xs text-[var(--muted-strong)]">
-            Quando ativado, a avaliação fica visível só para você.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setForm((current) => ({ ...current, isPublic: !current.isPublic }))}
-          className={clsx(
-            "relative inline-flex h-8 w-14 items-center rounded-full border transition opacity-60 hover:opacity-80",
-            !form.isPublic
-              ? "border-[var(--accent-soft)] bg-[color-mix(in_srgb,var(--accent)_42%,transparent)]"
-              : "border-[var(--field-border)] bg-[color-mix(in_srgb,var(--panel)_72%,transparent)]"
-          )}
-          aria-pressed={!form.isPublic}
-        >
-          <span
-            className={clsx(
-              "inline-block h-6 w-6 transform rounded-full bg-white transition",
-              !form.isPublic ? "translate-x-7" : "translate-x-1"
-            )}
-          />
-        </button>
-      </label>
+      <ToggleRow
+        title="Privado"
+        description="Só você e seu par veem esta avaliação."
+        checked={!form.isPublic}
+        onToggle={() => setForm((current) => ({ ...current, isPublic: !current.isPublic }))}
+      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           disabled={isSubmitting}
-          className="rounded-full border border-[var(--accent-soft)] bg-[linear-gradient(135deg,var(--accent),var(--accent-strong))] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(124,1,22,0.22)] hover:-translate-y-0.5 hover:brightness-110 focus:outline-none focus:shadow-[0_0_0_4px_var(--accent-ring)] disabled:opacity-70"
+          className="btn-primary w-full rounded-full px-6 py-3.5 text-sm font-bold hover:-translate-y-0.5 disabled:opacity-70 sm:w-auto"
         >
           {isSubmitting ? "Salvando..." : "Publicar visita"}
         </button>
 
-        {message ? <p className="text-sm text-[var(--muted-strong)]">{message}</p> : null}
+        {message ? (
+          <p
+            role="status"
+            className={clsx(
+              "rounded-2xl border px-4 py-2.5 text-sm",
+              message.tone === "success"
+                ? "border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]"
+                : "border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger-text)]"
+            )}
+          >
+            {message.text}
+          </p>
+        ) : null}
       </div>
     </form>
   );

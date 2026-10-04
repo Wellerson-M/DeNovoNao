@@ -27,15 +27,28 @@ export async function saveReviewOffline(review: Omit<LocalQueuedReview, "created
   });
 }
 
-export async function syncPendingReviews(token: string | null) {
+// Evita que duas chamadas simultâneas (provider + hook ao reconectar) enviem a mesma avaliação duas vezes.
+let inFlightSync: Promise<void> | null = null;
+
+export function syncPendingReviews(token: string | null) {
   if (!token) {
-    return;
+    return Promise.resolve();
   }
 
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    return;
+    return Promise.resolve();
   }
 
+  if (!inFlightSync) {
+    inFlightSync = runSync(token).finally(() => {
+      inFlightSync = null;
+    });
+  }
+
+  return inFlightSync;
+}
+
+async function runSync(token: string) {
   const pendingReviews = await db.queuedReviews.where("status").anyOf("pending", "failed").toArray();
 
   for (const review of pendingReviews) {
