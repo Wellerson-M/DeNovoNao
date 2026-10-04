@@ -131,11 +131,13 @@ function ReviewCard({
   canDelete,
   onDelete,
   isDeleting,
+  index = 0,
 }: {
   review: ReviewRecord;
   canDelete: boolean;
   onDelete: (review: ReviewRecord) => Promise<void>;
   isDeleting: boolean;
+  index?: number;
 }) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const opinions = [review.opinionOne, review.opinionTwo].map((text) => text?.trim()).filter(Boolean) as string[];
@@ -143,9 +145,10 @@ function ReviewCard({
   return (
     <article
       className={clsx(
-        "rounded-[24px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl sm:p-5",
+        "card-lift animate-fade-up rounded-[24px] border border-[var(--panel-border)] bg-[var(--panel)] p-4 shadow-[var(--panel-shadow)] backdrop-blur-xl sm:p-5",
         !review.isPublic && "border-dashed"
       )}
+      style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-2">
@@ -188,7 +191,7 @@ function ReviewCard({
       </div>
 
       {isConfirmingDelete ? (
-        <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="animate-fade-up mt-4 flex flex-col gap-3 rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-[var(--danger-text)]">Excluir a avaliação de {review.placeName}?</p>
           <div className="flex gap-2">
             <button
@@ -545,7 +548,8 @@ export function HomePage() {
       />
 
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))] sm:gap-6 sm:px-6 sm:py-6 md:pb-10 lg:px-8">
-        <section className="overflow-hidden rounded-[28px] border border-[var(--hero-border)] bg-[image:var(--hero-bg)] p-4 shadow-[var(--hero-shadow)] backdrop-blur-2xl sm:rounded-[32px] sm:p-7">
+        <section className="relative isolate overflow-hidden rounded-[28px] border border-[var(--hero-border)] bg-[image:var(--hero-bg)] p-4 shadow-[var(--hero-shadow)] backdrop-blur-2xl sm:rounded-[32px] sm:p-7">
+          <div className="hero-glow -z-10" aria-hidden="true" />
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between gap-3">
               <p className="brand-wordmark text-sm uppercase tracking-[0.24em]">DeNovoNao</p>
@@ -561,7 +565,9 @@ export function HomePage() {
                   aria-label={theme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro"}
                   title={theme === "dark" ? "Tema claro" : "Tema escuro"}
                 >
-                  {theme === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+                  <span key={theme} className="animate-spin-in inline-flex">
+                    {theme === "dark" ? <SunMedium className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+                  </span>
                 </button>
 
                 {session?.role === 2 ? (
@@ -741,7 +747,7 @@ export function HomePage() {
         {isLoading ? (
           <div className="grid gap-4" aria-hidden="true">
             {[0, 1].map((index) => (
-              <div key={index} className="h-40 animate-pulse rounded-[24px] border border-[var(--panel-border)] bg-[var(--panel)]" />
+              <div key={index} className="skeleton h-40 rounded-[24px] border border-[var(--panel-border)] bg-[var(--panel)]" />
             ))}
           </div>
         ) : (
@@ -762,8 +768,9 @@ export function HomePage() {
                 </div>
               ) : (
                 <>
-                  {myReviews.slice(0, myVisibleCount).map((review) => (
+                  {myReviews.slice(0, myVisibleCount).map((review, index) => (
                     <ReviewCard
+                      index={index}
                       key={review.id}
                       review={review}
                       canDelete={canManageReview(review, session)}
@@ -793,8 +800,9 @@ export function HomePage() {
                   Nenhuma avaliação pública de outras pessoas para este filtro.
                 </div>
               ) : (
-                otherReviews.map((review) => (
+                otherReviews.map((review, index) => (
                   <ReviewCard
+                    index={index}
                     key={review.id}
                     review={review}
                     canDelete={canManageReview(review, session)}
@@ -824,7 +832,7 @@ export function HomePage() {
         <button
           type="button"
           onClick={openComposer}
-          className="btn-primary safe-bottom fixed right-4 z-[80] inline-flex h-14 items-center gap-2 rounded-full px-5 text-sm font-bold md:hidden"
+          className="btn-primary animate-pop-in safe-bottom fixed right-4 z-[80] inline-flex h-14 items-center gap-2 rounded-full px-5 text-sm font-bold md:hidden"
         >
           <Plus className="h-5 w-5" />
           Nova avaliação

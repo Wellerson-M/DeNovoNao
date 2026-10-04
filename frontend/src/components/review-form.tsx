@@ -196,7 +196,14 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
               onClick={() => setForm((current) => ({ ...current, placeRating: value }))}
               className="inline-flex h-12 w-12 items-center justify-center rounded-2xl text-[var(--star)] hover:bg-[var(--panel-hover)] sm:h-14 sm:w-14"
             >
-              <Star className={clsx("h-8 w-8 sm:h-9 sm:w-9", value <= form.placeRating ? "fill-current" : "opacity-35")} />
+              <Star
+                key={value === form.placeRating ? `active-${value}` : value}
+                className={clsx(
+                  "h-8 w-8 sm:h-9 sm:w-9",
+                  value <= form.placeRating ? "fill-current" : "opacity-35",
+                  value === form.placeRating && "animate-star-pop"
+                )}
+              />
             </button>
           ))}
         </div>
@@ -257,7 +264,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
           <p
             role="status"
             className={clsx(
-              "rounded-2xl border px-4 py-2.5 text-sm",
+              "animate-fade-up rounded-2xl border px-4 py-2.5 text-sm",
               message.tone === "success"
                 ? "border-[var(--success-border)] bg-[var(--success-bg)] text-[var(--success-text)]"
                 : "border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger-text)]"

@@ -94,12 +94,10 @@ async function ensureMongo(response: Response) {
 }
 
 function normalizeReviewDocument(review: Record<string, unknown>) {
+  // Avaliações da versão antiga (sem login) só têm `createdBy: "casal"`, que não é
+  // o nome de ninguém; nesses casos o feed não mostra autoria.
   const createdByName =
-    typeof review.createdByName === "string" && review.createdByName.trim()
-      ? review.createdByName.trim()
-      : typeof review.createdBy === "string" && review.createdBy.trim()
-        ? review.createdBy.trim()
-        : null;
+    typeof review.createdByName === "string" && review.createdByName.trim() ? review.createdByName.trim() : null;
 
   return {
     _id: review._id,
