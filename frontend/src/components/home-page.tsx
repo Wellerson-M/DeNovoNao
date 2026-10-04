@@ -553,7 +553,6 @@ export function HomePage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))] sm:gap-6 sm:px-6 sm:py-6 md:pb-10 lg:px-8">
         <section className="relative isolate overflow-hidden rounded-[28px] border border-[var(--hero-border)] bg-[image:var(--hero-bg)] p-4 shadow-[var(--hero-shadow)] backdrop-blur-2xl sm:rounded-[32px] sm:p-7">
           <div className="hero-glow -z-10" aria-hidden="true" />
-          <LogoMark className="pointer-events-none absolute -bottom-10 -right-8 -z-10 h-56 w-56 rotate-[-14deg] text-[var(--text)] opacity-[0.06] sm:-bottom-16 sm:right-6 sm:h-80 sm:w-80" />
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between gap-3">
               <Wordmark textClassName="max-[389px]:hidden" />

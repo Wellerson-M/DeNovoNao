@@ -44,7 +44,7 @@
   --brand-gradient: linear-gradient(120deg, #ff4a33 0%, #ff7a1a 45%, #ffc21a 100%);
   --accent-shadow: 0 12px 30px rgba(230, 51, 34, 0.34);
   --glow: rgba(245, 163, 0, 0.32);
-  --doodle: rgba(255, 200, 150, 0.06);
+  --doodle: rgba(255, 200, 150, 0.018);
   --danger-bg: rgba(240, 65, 44, 0.13);
   --danger-border: rgba(255, 130, 100, 0.3);
   --danger-text: #ffc4b5;
@@ -96,7 +96,7 @@
   --brand-gradient: linear-gradient(120deg, #d42a17 0%, #e2560b 50%, #d98a00 100%);
   --accent-shadow: 0 12px 28px rgba(212, 42, 23, 0.26);
   --glow: rgba(245, 163, 0, 0.3);
-  --doodle: rgba(150, 60, 20, 0.07);
+  --doodle: rgba(150, 60, 20, 0.04);
   --danger-bg: rgba(212, 42, 23, 0.08);
   --danger-border: rgba(212, 42, 23, 0.24);
   --danger-text: #a3200f;
@@ -143,14 +143,14 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background-color: var(--doodle);
-  -webkit-mask: url("/doodles.svg") 0 0 / 420px 420px repeat;
-  mask: url("/doodles.svg") 0 0 / 420px 420px repeat;
+  -webkit-mask: url("/doodles.svg") 0 0 / 480px 480px repeat;
+  mask: url("/doodles.svg") 0 0 / 480px 480px repeat;
 }
 
 @media (max-width: 639px) {
   body::before {
-    -webkit-mask-size: 300px 300px;
-    mask-size: 300px 300px;
+    -webkit-mask-size: 360px 360px;
+    mask-size: 360px 360px;
   }
 }
 
