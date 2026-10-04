@@ -698,7 +698,19 @@ export function AdminPage() {
         ) : tab === "trash" ? (
           <TrashPanel token={adminToken} notify={notify} onChanged={() => setDataVersion((current) => current + 1)} />
         ) : tab === "logs" ? (
-          <LogsPanel token={adminToken} notify={notify} initialFilter={logsFilter} />
+          <LogsPanel
+            token={adminToken}
+            notify={notify}
+            initialFilter={logsFilter}
+            onOpenUser={(search) => {
+              setUserQuery(search);
+              changeTab("users");
+            }}
+            onOpenReview={(search) => {
+              setReviewQuery(search);
+              changeTab("reviews");
+            }}
+          />
         ) : tab === "reviews" ? (
           <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.1fr)] xl:items-start">
             <div className="grid gap-4">

@@ -9,7 +9,7 @@
 | Login | https://de-novo-nao.vercel.app/login |
 | API (saúde) | https://denovonao.onrender.com/api/health |
 | Repositório | https://github.com/Wellerson-M/DeNovoNao |
-| Deploy do frontend | https://vercel.com/wellerson-ms-projects/de-novo-nao |
+| Deploy do frontend | https://vercel.com/dashboard |
 | Deploy do backend | https://dashboard.render.com |
 | Banco de dados | https://cloud.mongodb.com |
 
@@ -260,8 +260,9 @@ alguns itens aparecem como "PULOU" até o limite expirar (10 min) ou a API reini
 
 1. **Fica registrado.** Cada erro vira uma ocorrência com login tentado, IP, data e hora.
    Veja em **Painel admin → Ocorrências**, filtro "Logins falhos".
-2. **É bloqueado sozinho.** 15 erros em 10 minutos travam aquele visitante por alguns minutos.
-   O bloqueio é por IP, não derruba o login dos outros.
+2. **É bloqueado sozinho.** São dois limites: 6 erros em 10 minutos travam aquele visitante,
+   e 8 erros em 15 minutos travam tentativas contra aquela conta, mesmo vindas de IPs diferentes.
+   O bloqueio é por visitante, não derruba o login dos outros.
 3. **Você é avisado ao abrir o painel.** Passando de 20 erros em 24h, aparece um alerta vermelho
    no **Resumo** com os IPs e logins mais tentados. Não há notificação por e-mail ou push.
 4. **Você pode agir** na aba Usuários: **Suspender** (tira o acesso na hora),
@@ -269,7 +270,8 @@ alguns itens aparecem como "PULOU" até o limite expirar (10 min) ou a API reini
 
 Proteções em vigor:
 
-- Senhas com bcrypt; o login não revela se a conta existe e trava após 15 tentativas em 10 min.
+- Senhas com bcrypt (mínimo de 6 caracteres, com confirmação no cadastro); o login não revela
+  se a conta existe e trava após 6 tentativas em 10 min por IP ou 8 por conta.
 - Suspender a conta ou encerrar as sessões derruba os tokens já emitidos na hora.
 - Link de senha nova: aleatório de 32 bytes, guardado só como hash, uso único, expira em 24h,
   e ao ser usado encerra as sessões antigas.

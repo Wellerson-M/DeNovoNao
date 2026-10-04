@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Star } from "lucide-react";
 import { useUi } from "@/contexts/ui-context";
@@ -87,11 +87,38 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
   const [priceText, setPriceText] = useState("");
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const messageTimer = useRef<number | null>(null);
+
+  // O aviso não pode ficar preso na tela enquanto a pessoa digita a próxima visita.
+  const showMessage = useCallback((next: { tone: "success" | "error"; text: string }) => {
+    setMessage(next);
+    if (messageTimer.current) {
+      window.clearTimeout(messageTimer.current);
+    }
+    messageTimer.current = window.setTimeout(() => setMessage(null), 6000);
+  }, []);
+
+  const clearMessage = useCallback(() => {
+    if (messageTimer.current) {
+      window.clearTimeout(messageTimer.current);
+      messageTimer.current = null;
+    }
+    setMessage(null);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (messageTimer.current) {
+        window.clearTimeout(messageTimer.current);
+      }
+    },
+    []
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
-    setMessage(null);
+    clearMessage();
 
     try {
       const result = await withLoader(
@@ -109,7 +136,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
         }),
       );
 
-      setMessage({
+      showMessage({
         tone: "success",
         text:
           result?.mode === "offline"
@@ -121,7 +148,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
       setWarningsText("");
       setPriceText("");
     } catch (error) {
-      setMessage({
+      showMessage({
         tone: "error",
         text: error instanceof Error ? `Não foi possível salvar. ${error.message}` : "Não foi possível salvar.",
       });
@@ -131,7 +158,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-5">
+    <form onSubmit={handleSubmit} onInput={clearMessage} className="grid gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-2">
           <span className="text-sm font-medium text-[var(--muted-strong)]">Nome do local</span>
@@ -251,12 +278,12 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
 
       <fieldset className="grid gap-3 rounded-2xl border border-[var(--field-border)] bg-[var(--field-bg)] p-4">
         <legend className="px-1 text-sm font-medium text-[var(--muted-strong)]">
-          Quanto custou <span className="font-normal text-[var(--muted)]">(opcional)</span>
+          Valor aproximado <span className="font-normal text-[var(--muted)]">(opcional)</span>
         </legend>
 
         <div className="grid gap-3 sm:grid-cols-[minmax(0,160px)_1fr]">
           <label className="grid gap-1.5">
-            <span className="text-xs text-[var(--muted)]">Valor por pessoa</span>
+            <span className="text-xs text-[var(--muted)]">Por pessoa</span>
             <div className="flex items-center gap-2 rounded-xl border border-[var(--field-border)] bg-[var(--panel)] px-3 focus-within:border-[var(--accent-soft)] focus-within:shadow-[0_0_0_3px_var(--accent-ring)]">
               <span className="text-sm font-semibold text-[var(--muted)]">R$</span>
               <input
@@ -280,10 +307,6 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
             />
           </label>
         </div>
-
-        <p className="text-xs text-[var(--muted)]">
-          Com valor preenchido em mais de uma visita, o app mostra a faixa de preços do lugar.
-        </p>
       </fieldset>
 
       <ToggleRow
