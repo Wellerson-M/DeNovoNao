@@ -5,6 +5,7 @@ import { User } from "../models/User.js";
 // @ts-ignore
 import { Review } from "../models/Review.js";
 import { getReviewDriver } from "../data/review-store.js";
+import { escapeRegex } from "../utils/escape-regex.js";
 
 const PAGE_SIZE = 10;
 
@@ -170,14 +171,14 @@ function buildAdminReviewFilter(q: string, idCasal?: string) {
   return {
     ...base,
     $or: [
-      { placeName: { $regex: q, $options: "i" } },
-      { locationLabel: { $regex: q, $options: "i" } },
-      { opinionOne: { $regex: q, $options: "i" } },
-      { opinionTwo: { $regex: q, $options: "i" } },
-      { criticalWarnings: { $elemMatch: { $regex: q, $options: "i" } } },
-      { myOpinion: { $regex: q, $options: "i" } },
-      { herOpinion: { $regex: q, $options: "i" } },
-      { redFlags: { $elemMatch: { $regex: q, $options: "i" } } },
+      { placeName: { $regex: escapeRegex(q), $options: "i" } },
+      { locationLabel: { $regex: escapeRegex(q), $options: "i" } },
+      { opinionOne: { $regex: escapeRegex(q), $options: "i" } },
+      { opinionTwo: { $regex: escapeRegex(q), $options: "i" } },
+      { criticalWarnings: { $elemMatch: { $regex: escapeRegex(q), $options: "i" } } },
+      { myOpinion: { $regex: escapeRegex(q), $options: "i" } },
+      { herOpinion: { $regex: escapeRegex(q), $options: "i" } },
+      { redFlags: { $elemMatch: { $regex: escapeRegex(q), $options: "i" } } },
       ...(ratingValue ? [{ placeRating: ratingValue }, { coupleRating: ratingValue }] : []),
     ],
   };
@@ -193,10 +194,10 @@ export async function listAdminUsersController(request: Request, response: Respo
     const filter = q
       ? {
           $or: [
-            { name: { $regex: q, $options: "i" } },
-            { login: { $regex: q, $options: "i" } },
-            { email: { $regex: q, $options: "i" } },
-            { id_casal: { $regex: q, $options: "i" } },
+            { name: { $regex: escapeRegex(q), $options: "i" } },
+            { login: { $regex: escapeRegex(q), $options: "i" } },
+            { email: { $regex: escapeRegex(q), $options: "i" } },
+            { id_casal: { $regex: escapeRegex(q), $options: "i" } },
           ],
         }
       : {};

@@ -6,19 +6,24 @@ import { authRouter } from "./routes/auth.js";
 import { reviewsRouter } from "./routes/reviews.js";
 
 export const app = express();
-const allowedOrigins = env.clientOrigin
+// Cada item de CLIENT_ORIGIN pode ter "*" como curinga, ex.:
+// https://denovonao-*.vercel.app libera todos os previews de branch do Vercel.
+const allowedOrigins = [env.clientOrigin, env.previewOrigins]
+  .join(",")
   .split(",")
   .map((origin) => origin.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  .map((origin) => new RegExp(`^${origin.split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join("[a-z0-9-]*")}$`, "i"));
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.some((pattern) => pattern.test(origin))) {
         return callback(null, true);
       }
 
-      return callback(new Error(`Origin not allowed: ${origin}`));
+      // Sem cabeçalhos CORS o navegador bloqueia a resposta; não precisa virar erro 500.
+      return callback(null, false);
     },
   })
 );
