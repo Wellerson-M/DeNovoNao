@@ -230,6 +230,42 @@ a {
   bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
+/* Tela de abertura: fica visível até o React montar. */
+#boot-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 20px;
+  background: var(--page-bg-solid);
+  background-image: var(--page-bg);
+}
+
+#boot-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  border: 2px solid var(--accent-ring);
+  border-top-color: var(--accent);
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+:root.app-ready #boot-splash {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 220ms ease,
+    visibility 0s linear 220ms;
+}
+
 /* ---------- Animações ---------- */
 
 /* Começa parcialmente visível: se a animação não rodar, o conteúdo continua legível. */

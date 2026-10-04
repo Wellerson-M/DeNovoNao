@@ -38,6 +38,20 @@ const userSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    // Tokens emitidos antes desta data deixam de valer (encerrar sessões).
+    tokensValidFrom: {
+      type: Date,
+      default: null,
+    },
+    // Link de redefinição de senha gerado pelo admin (guardamos só o hash).
+    resetTokenHash: {
+      type: String,
+      default: null,
+    },
+    resetExpiresAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

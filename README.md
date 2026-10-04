@@ -1,5 +1,21 @@
 # DeNovoNao
 
+## Acesso rápido
+
+| O quê | Link |
+|---|---|
+| **App (produção)** | **https://de-novo-nao.vercel.app** |
+| Painel admin | https://de-novo-nao.vercel.app/admin |
+| Login | https://de-novo-nao.vercel.app/login |
+| API (saúde) | https://denovonao.onrender.com/api/health |
+| Repositório | https://github.com/Wellerson-M/DeNovoNao |
+| Deploy do frontend | https://vercel.com/wellerson-ms-projects/de-novo-nao |
+| Deploy do backend | https://dashboard.render.com |
+| Banco de dados | https://cloud.mongodb.com |
+
+Preview de um branch: `https://de-novo-nao-git-<branch>-wellerson-ms-projects.vercel.app`
+
+
 Aplicativo web (PWA) para casais registrarem avaliações de lanchonetes, restaurantes e deliveries — e **não repetirem erros gastronômicos**. Cada avaliação guarda a nota do lugar, a opinião de cada pessoa do casal, alertas críticos ("veio frio", "maionese azeda"…) e se a visita foi presencial ou por delivery.
 
 > O nome interno antigo do projeto era **Avalieitor**. Ele ainda aparece nos `package.json`, no nome do banco (`avalieitor`), no container Docker e no cache do service worker.
@@ -11,12 +27,20 @@ Aplicativo web (PWA) para casais registrarem avaliações de lanchonetes, restau
 - **Casais (`id_casal`)**: usuários com o mesmo `id_casal` compartilham as avaliações e podem editá-las/excluí-las.
 - **Delivery**: a avaliação pode ser marcada como delivery em vez de ter um local físico.
 - **Contas**: cadastro e login (por login ou e-mail), edição do perfil e troca de senha.
+- **Esqueci a senha**: como não pedimos e-mail no cadastro, o admin gera um link de uso único
+  (vale 24h) e manda para a pessoa; ela abre `/redefinir-senha?token=...` e escolhe uma senha nova.
+- **Valores**: cada avaliação pode registrar quanto custou por pessoa e um detalhe livre
+  ("X-burguer 32, chopp 18"). Com valor em mais de uma visita ao mesmo lugar, o feed mostra a faixa.
 - **Área administrativa** (`/admin`), com endereço próprio por aba (`/admin#lixeira`):
   - **Resumo**: quantas avaliações estão no ar, na lixeira, privadas, contas sem casal e logins falhos.
   - **Moderação**: lista por lugar, com detalhes, lixeira e exclusão definitiva.
   - **Lixeira**: tudo que foi excluído (inclusive privadas), com restaurar, apagar de vez e limpeza por período.
   - **Ocorrências**: histórico de quem fez o quê (editou, excluiu, restaurou, entrou, errou o login), com IP e filtro.
-  - **Usuários**: papel, casal, exclusão e histórico de avaliações do casal.
+  - **Usuários**: papel, casal, exclusão e histórico de avaliações do casal; **suspender/reativar**,
+    **encerrar sessões** em todos os aparelhos e **gerar link de senha nova**.
+  - Editar avaliação direto pelo painel, sem precisar excluir e recriar.
+  - Exportar as ocorrências em CSV (respeita os filtros da tela).
+  - Alerta no resumo quando há muitas tentativas de login erradas em 24h, com os IPs envolvidos.
 - **Offline-first**: se a rede cair, a avaliação vai para uma fila local (IndexedDB) e é enviada quando a conexão volta.
 - **PWA instalável** no Android e no iPhone, com tema claro/escuro.
 
@@ -198,6 +222,11 @@ Todas as rotas ficam sob `/api`. Rotas autenticadas usam `Authorization: Bearer 
 | DELETE | `/admin/trash/:id` | Admin | Apaga de vez uma avaliação da lixeira |
 | GET | `/admin/logs` | Admin | Ocorrências (`q`, `action`, `page`) |
 | POST | `/admin/purge` | Admin | Limpeza por período (`target=trash\|logs`, `before` em ISO) |
+| GET | `/admin/logs/export` | Admin | Baixa as ocorrências em CSV |
+| POST | `/admin/users/:id/revoke-sessions` | Admin | Encerra as sessões do usuário |
+| POST | `/admin/users/:id/reset-link` | Admin | Gera link de senha nova (24h, uso único) |
+| GET | `/auth/reset?token=` | Livre | Confere se o link de senha ainda vale |
+| POST | `/auth/reset` | Livre | Troca a senha usando o link |
 
 ## Fluxo offline-first
 
@@ -227,9 +256,24 @@ Os testes só leem dados e fazem tentativas que devem ser bloqueadas — nada é
 O teste de força bruta consome a cota de tentativas do IP; rodando duas vezes seguidas,
 alguns itens aparecem como "PULOU" até o limite expirar (10 min) ou a API reiniciar.
 
+### Alguém errou a senha ou está tentando invadir. E agora?
+
+1. **Fica registrado.** Cada erro vira uma ocorrência com login tentado, IP, data e hora.
+   Veja em **Painel admin → Ocorrências**, filtro "Logins falhos".
+2. **É bloqueado sozinho.** 15 erros em 10 minutos travam aquele visitante por alguns minutos.
+   O bloqueio é por IP, não derruba o login dos outros.
+3. **Você é avisado ao abrir o painel.** Passando de 20 erros em 24h, aparece um alerta vermelho
+   no **Resumo** com os IPs e logins mais tentados. Não há notificação por e-mail ou push.
+4. **Você pode agir** na aba Usuários: **Suspender** (tira o acesso na hora),
+   **Sair de tudo** (encerra as sessões abertas) e **Nova senha** (gera o link de redefinição).
+
 Proteções em vigor:
 
 - Senhas com bcrypt; o login não revela se a conta existe e trava após 15 tentativas em 10 min.
+- Suspender a conta ou encerrar as sessões derruba os tokens já emitidos na hora.
+- Link de senha nova: aleatório de 32 bytes, guardado só como hash, uso único, expira em 24h,
+  e ao ser usado encerra as sessões antigas.
+- `/admin` e `/redefinir-senha` ficam fora dos buscadores (robots.txt e meta noindex).
 - O bloqueio conta por visitante (usa `CF-Connecting-IP`, preenchido pelo Cloudflare), para não
   derrubar o login de todo mundo. Quem alcançasse a origem no Render sem passar pelo Cloudflare
   poderia forjar esse cabeçalho e escapar do limite.

@@ -6,6 +6,7 @@ import clsx from "clsx";
 import {
   AlertTriangle,
   Bike,
+  Wallet,
   Heart,
   ChevronRight,
   LoaderCircle,
@@ -32,7 +33,8 @@ import { useConnection } from "@/hooks/use-connection";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useReviews } from "@/hooks/use-reviews";
 import { useUi } from "@/contexts/ui-context";
-import type { ReviewInput, ReviewRecord } from "@/lib/types";
+import { formatPrice, formatPriceRange } from "@/lib/format-price";
+import type { PriceRange, ReviewInput, ReviewRecord } from "@/lib/types";
 
 type ThemeMode = "dark" | "light";
 
@@ -125,12 +127,14 @@ function ReviewCard({
   onDelete,
   isDeleting,
   index = 0,
+  priceRange,
 }: {
   review: ReviewRecord;
   canDelete: boolean;
   onDelete: (review: ReviewRecord) => Promise<void>;
   isDeleting: boolean;
   index?: number;
+  priceRange?: PriceRange;
 }) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const opinions = [review.opinionOne, review.opinionTwo].map((text) => text?.trim()).filter(Boolean) as string[];
@@ -240,6 +244,21 @@ function ReviewCard({
             ))}
           </div>
         </div>
+      ) : null}
+
+      {review.priceAmount !== null || review.priceNote ? (
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--muted-strong)]">
+          <Wallet className="h-4 w-4 shrink-0 text-[var(--muted)]" />
+          {review.priceAmount !== null ? (
+            <span className="font-semibold text-[var(--text-soft)]">{formatPrice(review.priceAmount)} por pessoa</span>
+          ) : null}
+          {review.priceNote ? <span className="break-words">{review.priceNote}</span> : null}
+          {priceRange && priceRange.count > 1 ? (
+            <span className="text-[var(--muted)]">
+              · neste lugar: {formatPriceRange(priceRange.min, priceRange.max)}
+            </span>
+          ) : null}
+        </p>
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
@@ -795,6 +814,7 @@ export function HomePage() {
                     <ReviewCard
                       index={index}
                       key={review.id}
+                      priceRange={meta.priceRanges?.[review.placeName.toLowerCase()]}
                       review={review}
                       canDelete={canManageReview(review, session)}
                       onDelete={handleDelete}
@@ -831,6 +851,7 @@ export function HomePage() {
                   <ReviewCard
                     index={index}
                     key={review.id}
+                    priceRange={meta.priceRanges?.[review.placeName.toLowerCase()]}
                     review={review}
                     canDelete={canManageReview(review, session)}
                     onDelete={handleDelete}

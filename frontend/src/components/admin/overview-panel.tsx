@@ -100,8 +100,38 @@ export function OverviewPanel({
     return <EmptyState>Não foi possível carregar o resumo.</EmptyState>;
   }
 
+  const underAttack = data.security.failedLogins24h >= 20;
+
   return (
     <div className="grid gap-5">
+      {underAttack ? (
+        <section className="animate-fade-up grid gap-2 rounded-[20px] border border-[var(--danger-border)] bg-[var(--danger-bg)] p-4">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-[var(--danger-text)]">
+            <AlertTriangle className="h-4 w-4" />
+            {data.security.failedLogins24h} tentativas de login erradas nas últimas 24h
+          </h2>
+          <p className="text-xs text-[var(--danger-text)] opacity-90">
+            Quem erra muito já fica bloqueado por 10 minutos. Se alguma conta sua aparecer na lista,
+            suspenda-a ou gere uma senha nova na aba Usuários.
+          </p>
+          <ul className="grid gap-1 text-xs text-[var(--text-soft)]">
+            {data.security.topOffenders.map((item) => (
+              <li key={`${item.ip}-${item.login}`} className="flex flex-wrap items-center gap-x-2 tabular-nums">
+                <strong className="font-semibold">{item.count}x</strong>
+                <span>login &quot;{item.login || "?"}&quot;</span>
+                <span className="text-[var(--muted)]">do IP {item.ip}</span>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={onOpenLogs}
+            className="justify-self-start rounded-full border border-[var(--danger-border)] px-4 py-1.5 text-xs font-semibold text-[var(--danger-text)]"
+          >
+            Ver todas as tentativas
+          </button>
+        </section>
+      ) : null}
       <section className="grid gap-3">
         <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Avaliações</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -122,7 +152,12 @@ export function OverviewPanel({
       <section className="grid gap-3">
         <h2 className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--muted)]">Pessoas</h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Tile icon={<Users className="h-3.5 w-3.5" />} label="Contas" value={data.users.total} />
+          <Tile
+            icon={<Users className="h-3.5 w-3.5" />}
+            label="Contas"
+            value={data.users.total}
+            hint={data.users.suspended > 0 ? `${data.users.suspended} suspensa(s)` : undefined}
+          />
           <Tile icon={<ShieldAlert className="h-3.5 w-3.5" />} label="Admins" value={data.users.admins} />
           <Tile
             icon={<UserRound className="h-3.5 w-3.5" />}
@@ -136,7 +171,7 @@ export function OverviewPanel({
             label="Logins falhos"
             value={data.security.failedLogins7Days}
             hint="Últimos 7 dias"
-            tone={data.security.failedLogins7Days > 20 ? "danger" : "neutral"}
+            tone={underAttack ? "danger" : "neutral"}
             onClick={onOpenLogs}
           />
         </div>

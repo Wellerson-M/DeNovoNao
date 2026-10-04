@@ -12,6 +12,7 @@ declare module "express-serve-static-core" {
 }
 
 type JwtPayload = {
+  iat?: number;
   sub?: string;
   id?: string;
   name?: string;
@@ -24,6 +25,7 @@ type JwtPayload = {
 type CurrentUserRecord = {
   _id: unknown;
   active?: boolean;
+  tokensValidFrom?: Date | string | null;
   role?: number;
   id_casal?: string | number | null;
   name?: string;
@@ -65,9 +67,12 @@ const VISITOR: AuthUser = { id: "", role: 0, id_casal: null };
 
 async function resolveAuthUser(token: string): Promise<AuthUser | null> {
   let authUser: AuthUser;
+  let issuedAt: number | null = null;
 
   try {
-    authUser = normalizeAuthUser(jwt.verify(token, env.jwtSecret) as JwtPayload);
+    const payload = jwt.verify(token, env.jwtSecret) as JwtPayload;
+    issuedAt = typeof payload.iat === "number" ? payload.iat : null;
+    authUser = normalizeAuthUser(payload);
   } catch {
     return null;
   }
@@ -79,9 +84,17 @@ async function resolveAuthUser(token: string): Promise<AuthUser | null> {
   try {
     const currentUser = (await User.findById(authUser.id).lean()) as CurrentUserRecord | null;
 
-    // Usuário apagado ou desativado: o token antigo não vale mais.
+    // Usuário apagado ou suspenso: o token antigo não vale mais.
     if (!currentUser || currentUser.active === false) {
       return null;
+    }
+
+    // Sessões encerradas pelo admin: recusa tokens emitidos antes do corte.
+    if (currentUser.tokensValidFrom) {
+      const cutoff = new Date(currentUser.tokensValidFrom).getTime();
+      if (Number.isFinite(cutoff) && (issuedAt === null || issuedAt * 1000 < cutoff)) {
+        return null;
+      }
     }
 
     {

@@ -34,6 +34,17 @@ const reviewSchema = new Schema(
       default: false,
       index: true,
     },
+    // Quanto custou: valor por pessoa (para a média) e um texto livre opcional.
+    priceAmount: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    priceNote: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     placeRating: {
       type: Number,
       required: true,

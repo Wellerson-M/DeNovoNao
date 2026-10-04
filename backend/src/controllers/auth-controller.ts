@@ -6,6 +6,7 @@ import { User } from "../models/User.js";
 import { getReviewDriver } from "../data/review-store.js";
 import { signAuthToken } from "../utils/auth-token.js";
 import { recordAudit } from "../utils/audit.js";
+import { hashResetToken } from "./admin-account-controller.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOGIN_REGEX = /^[a-zA-Z0-9._-]{3,30}$/;
@@ -322,3 +323,84 @@ export async function updateMeController(request: Request, response: Response) {
   }
 }
 
+
+/** Confere se o link de redefinição ainda vale, antes de mostrar o formulário. */
+export async function checkResetTokenController(request: Request, response: Response) {
+  if (!(await ensureMongo(response))) {
+    return;
+  }
+
+  try {
+    const token = typeof request.query.token === "string" ? request.query.token.trim() : "";
+
+    if (!token) {
+      return response.status(400).json({ message: "Link inválido." });
+    }
+
+    const user = await User.findOne({
+      resetTokenHash: hashResetToken(token),
+      resetExpiresAt: { $gt: new Date() },
+      active: true,
+    });
+
+    if (!user) {
+      return response.status(404).json({ message: "Este link expirou ou já foi usado." });
+    }
+
+    return response.status(200).json({ name: user.name, login: user.login ?? "" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Não foi possível validar o link.";
+    return response.status(400).json({ message });
+  }
+}
+
+/** Troca a senha usando o link de uso único gerado pelo admin. */
+export async function resetPasswordController(request: Request, response: Response) {
+  if (!(await ensureMongo(response))) {
+    return;
+  }
+
+  try {
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const token = typeof body.token === "string" ? body.token.trim() : "";
+    const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+
+    if (!token) {
+      return response.status(400).json({ message: "Link inválido." });
+    }
+
+    if (newPassword.length < 6) {
+      return response.status(400).json({ message: "A nova senha precisa ter pelo menos 6 caracteres." });
+    }
+
+    const user = await User.findOne({
+      resetTokenHash: hashResetToken(token),
+      resetExpiresAt: { $gt: new Date() },
+      active: true,
+    });
+
+    if (!user) {
+      return response.status(404).json({ message: "Este link expirou ou já foi usado." });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    // Link é de uso único e as sessões antigas caem junto.
+    user.resetTokenHash = null;
+    user.resetExpiresAt = null;
+    user.tokensValidFrom = new Date(Date.now() + 1000);
+    await user.save();
+
+    await recordAudit(request, {
+      action: "user.password_reset",
+      targetType: "user",
+      targetId: String(user._id),
+      targetLabel: user.login ?? user.name ?? "",
+      actor: { id: String(user._id), name: user.name, login: user.login ?? "", role: user.role },
+    });
+
+    return response.status(200).json({ message: "Senha atualizada. Entre com a senha nova." });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Não foi possível redefinir a senha.";
+    return response.status(400).json({ message });
+  }
+}

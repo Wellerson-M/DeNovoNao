@@ -76,6 +76,9 @@ const ADMIN_ROUTES = [
   ["GET", "/admin/trash"],
   ["GET", "/admin/logs"],
   ["POST", "/admin/purge"],
+  ["GET", "/admin/logs/export"],
+  ["POST", `/admin/users/${FAKE_ID}/revoke-sessions`],
+  ["POST", `/admin/users/${FAKE_ID}/reset-link`],
   ["DELETE", `/admin/trash/${FAKE_ID}`],
   ["PUT", `/admin/users/${FAKE_ID}`],
   ["DELETE", `/admin/users/${FAKE_ID}`],
@@ -201,13 +204,29 @@ async function run() {
     check("ID inválido responde 400, não 500", badId.status === 400, `status ${badId.status}`);
   }
 
+  // ------------------------------------------------ redefinição de senha
+  group("Link de redefinição de senha");
+  const semToken = await call("/auth/reset?token=");
+  check("Link sem token é recusado", semToken.status === 400 || semToken.status === 429, `status ${semToken.status}`);
+
+  const tokenInventado = await call(`/auth/reset?token=${"a".repeat(64)}`);
+  check("Token inventado não abre a redefinição", tokenInventado.status === 404 || tokenInventado.status === 429, `status ${tokenInventado.status}`);
+
+  const trocaSemToken = await call("/auth/reset", { method: "POST", body: { newPassword: "novasenha123" } });
+  check("Troca de senha sem token é recusada", trocaSemToken.status === 400 || trocaSemToken.status === 429, `status ${trocaSemToken.status}`);
+
+  const senhaCurta = await call("/auth/reset", { method: "POST", body: { token: "a".repeat(64), newPassword: "123" } });
+  check("Senha curta é recusada na redefinição", senhaCurta.status === 400 || senhaCurta.status === 429, `status ${senhaCurta.status}`);
+
   // --------------------------------------------------------- vazamento de dados
   group("Privacidade do feed");
   const publicFeed = await call("/reviews");
   const items = Array.isArray(publicFeed.body?.items) ? publicFeed.body.items : [];
   check("Feed anônimo não traz avaliação privada", !items.some((item) => item.isPublic === false), `${items.length} itens`);
   check("Feed anônimo não traz avaliação na lixeira", !items.some((item) => item.active === false));
-  check("Feed não expõe hash de senha", !JSON.stringify(publicFeed.body ?? {}).includes("passwordHash"));
+  const feedTexto = JSON.stringify(publicFeed.body ?? {});
+  check("Feed não expõe hash de senha", !feedTexto.includes("passwordHash"));
+  check("Feed não expõe token de redefinição", !feedTexto.includes("resetTokenHash"));
 
   const loginProbe = await call("/auth/login", { method: "POST", body: { login: "usuario-que-nao-existe-xyz", password: "qualquer" } });
   const loginWrong = await call("/auth/login", { method: "POST", body: { login: "wellerson", password: "senha-errada-xyz" } });

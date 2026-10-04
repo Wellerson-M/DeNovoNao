@@ -7,6 +7,11 @@ import {
   updateAdminUserController,
 } from "../controllers/admin-controller.js";
 import {
+  createResetLinkController,
+  exportLogsController,
+  revokeSessionsController,
+} from "../controllers/admin-account-controller.js";
+import {
   adminOverviewController,
   deleteTrashedReviewController,
   listAuditLogsController,
@@ -31,3 +36,6 @@ adminRouter.get("/trash", listTrashController);
 adminRouter.delete("/trash/:id", deleteTrashedReviewController);
 adminRouter.get("/logs", listAuditLogsController);
 adminRouter.post("/purge", purgeController);
+adminRouter.get("/logs/export", exportLogsController);
+adminRouter.post("/users/:id/revoke-sessions", revokeSessionsController);
+adminRouter.post("/users/:id/reset-link", createResetLinkController);

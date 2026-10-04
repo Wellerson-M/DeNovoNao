@@ -84,3 +84,27 @@ export async function updateMyProfile(
   return (await response.json()) as AuthResponse;
 }
 
+
+export async function checkResetToken(token: string) {
+  const response = await apiFetch(`${getApiUrl()}/auth/reset?token=${encodeURIComponent(token)}`);
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Este link expirou ou já foi usado");
+  }
+
+  return (await response.json()) as { name: string; login: string };
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const response = await apiFetch(`${getApiUrl()}/auth/reset`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Não foi possível redefinir a senha");
+  }
+}
