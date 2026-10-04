@@ -11,7 +11,12 @@ Aplicativo web (PWA) para casais registrarem avaliações de lanchonetes, restau
 - **Casais (`id_casal`)**: usuários com o mesmo `id_casal` compartilham as avaliações e podem editá-las/excluí-las.
 - **Delivery**: a avaliação pode ser marcada como delivery em vez de ter um local físico.
 - **Contas**: cadastro e login (por login ou e-mail), edição do perfil e troca de senha.
-- **Área administrativa** (`/admin`): gerenciar usuários (papel, casal, ativo, exclusão) e ver todas as avaliações.
+- **Área administrativa** (`/admin`), com endereço próprio por aba (`/admin#lixeira`):
+  - **Resumo**: quantas avaliações estão no ar, na lixeira, privadas, contas sem casal e logins falhos.
+  - **Moderação**: lista por lugar, com detalhes, lixeira e exclusão definitiva.
+  - **Lixeira**: tudo que foi excluído (inclusive privadas), com restaurar, apagar de vez e limpeza por período.
+  - **Ocorrências**: histórico de quem fez o quê (editou, excluiu, restaurou, entrou, errou o login), com IP e filtro.
+  - **Usuários**: papel, casal, exclusão e histórico de avaliações do casal.
 - **Offline-first**: se a rede cair, a avaliação vai para uma fila local (IndexedDB) e é enviada quando a conexão volta.
 - **PWA instalável** no Android e no iPhone, com tema claro/escuro.
 
@@ -188,6 +193,11 @@ Todas as rotas ficam sob `/api`. Rotas autenticadas usam `Authorization: Bearer 
 | DELETE | `/admin/users/:id` | Admin | Exclui usuário e desativa as avaliações dele |
 | GET | `/admin/users/:id/reviews` | Admin | Avaliações do casal do usuário |
 | GET | `/admin/reviews` | Admin | Todas as avaliações (`q`, `sort=alpha\|recent`, `page`) |
+| GET | `/admin/overview` | Admin | Números do resumo do painel |
+| GET | `/admin/trash` | Admin | Avaliações na lixeira (`q`, `visibility=all\|public\|private`, `page`) |
+| DELETE | `/admin/trash/:id` | Admin | Apaga de vez uma avaliação da lixeira |
+| GET | `/admin/logs` | Admin | Ocorrências (`q`, `action`, `page`) |
+| POST | `/admin/purge` | Admin | Limpeza por período (`target=trash\|logs`, `before` em ISO) |
 
 ## Fluxo offline-first
 
@@ -196,6 +206,35 @@ Todas as rotas ficam sob `/api`. Rotas autenticadas usam `Authorization: Bearer 
 3. Sem rede, a avaliação é salva no IndexedDB (`denovonao` → `queuedReviews`) com status `pending`.
 4. O feed mostra as avaliações locais mescladas com as do servidor.
 5. Quando a conexão volta (e há sessão), `syncPendingReviews` reenvia a fila; em caso de erro o item fica `failed` e é tentado de novo depois.
+
+## Segurança
+
+A API tem uma bateria de testes que tenta acessos indevidos e confere se são recusados
+(papéis, tokens forjados ou expirados, vazamento de dados privados, injeção, CORS e força bruta):
+
+```bash
+npm --prefix backend run security:check                      # testa o servidor local
+node backend/scripts/security-check.mjs https://sua-api.com  # testa outro ambiente
+```
+
+Para incluir também as regras de papel com uma conta real (sem poderes de admin):
+
+```bash
+SEC_LOGIN=fulano SEC_PASSWORD=senha npm --prefix backend run security:check
+```
+
+Os testes só leem dados e fazem tentativas que devem ser bloqueadas — nada é alterado ou apagado.
+O teste de força bruta consome a cota de tentativas do IP; rodando duas vezes seguidas,
+alguns itens aparecem como "PULOU" até o limite expirar (10 min) ou a API reiniciar.
+
+Proteções em vigor:
+
+- Senhas com bcrypt; o login não revela se a conta existe e trava após 15 tentativas em 10 min.
+- Token recusado quando o usuário foi apagado ou desativado, mesmo antes de expirar.
+- `active` (restaurar da lixeira) só é aceito de admin.
+- Avaliação sem `id_casal` não pertence a ninguém: só admin edita ou exclui.
+- O último admin ativo não pode ser rebaixado, desativado nem excluído.
+- Texto de busca é escapado antes de virar regex do Mongo; corpo limitado a 256 KB.
 
 ## Observações importantes
 

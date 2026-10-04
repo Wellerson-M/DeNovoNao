@@ -5,6 +5,7 @@ import { User } from "../models/User.js";
 // @ts-ignore
 import { Review } from "../models/Review.js";
 import { getReviewDriver } from "../data/review-store.js";
+import { recordAudit } from "../utils/audit.js";
 import { escapeRegex } from "../utils/escape-regex.js";
 
 const PAGE_SIZE = 10;
@@ -258,7 +259,28 @@ export async function updateAdminUserController(request: Request, response: Resp
       }
     }
 
+    const isSelf = String(request.authUser?.id ?? "") === String(user._id);
+
+    // Evita o admin se trancar para fora do painel.
+    if (isSelf && patch.role !== undefined && patch.role !== 2) {
+      return response.status(400).json({ message: "Você não pode remover o seu próprio acesso de admin." });
+    }
+
+    if (isSelf && patch.active === false) {
+      return response.status(400).json({ message: "Você não pode desativar o seu próprio usuário." });
+    }
+
+    // Mantém sempre pelo menos um admin ativo no sistema.
+    const losesAdmin = user.role === 2 && ((patch.role !== undefined && patch.role !== 2) || patch.active === false);
+    if (losesAdmin) {
+      const otherAdmins = await User.countDocuments({ role: 2, active: true, _id: { $ne: user._id } });
+      if (otherAdmins === 0) {
+        return response.status(400).json({ message: "Este é o último admin ativo. Promova outro usuário antes." });
+      }
+    }
+
     const previousCoupleId = user.id_casal == null ? null : String(user.id_casal).trim() || null;
+    const previousRole = user.role;
     Object.assign(user, patch);
     await user.save();
 
@@ -275,6 +297,18 @@ export async function updateAdminUserController(request: Request, response: Resp
         }
       );
     }
+
+    await recordAudit(request, {
+      action: "user.update",
+      targetType: "user",
+      targetId: String(user._id),
+      targetLabel: user.login ?? user.name ?? "",
+      details: {
+        fields: Object.keys(patch),
+        ...(previousRole !== user.role ? { roleFrom: previousRole, roleTo: user.role } : {}),
+        ...(previousCoupleId !== nextCoupleId ? { coupleFrom: previousCoupleId, coupleTo: nextCoupleId } : {}),
+      },
+    });
 
     return response.status(200).json({
       item: {
@@ -315,6 +349,13 @@ export async function deleteAdminUserController(request: Request, response: Resp
       return response.status(404).json({ message: "Usuário não encontrado" });
     }
 
+    if (user.role === 2) {
+      const otherAdmins = await User.countDocuments({ role: 2, active: true, _id: { $ne: user._id } });
+      if (otherAdmins === 0) {
+        return response.status(400).json({ message: "Este é o último admin ativo. Promova outro usuário antes." });
+      }
+    }
+
     await Review.updateMany(
       {
         createdByUserId: String(user._id),
@@ -327,6 +368,14 @@ export async function deleteAdminUserController(request: Request, response: Resp
     );
 
     await User.deleteOne({ _id: user._id });
+
+    await recordAudit(request, {
+      action: "user.delete",
+      targetType: "user",
+      targetId: String(user._id),
+      targetLabel: user.login ?? user.name ?? "",
+      details: { role: user.role, id_casal: user.id_casal ?? null },
+    });
 
     return response.status(200).json({
       message: "Usuário excluído com sucesso",

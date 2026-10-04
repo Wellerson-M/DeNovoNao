@@ -173,3 +173,106 @@ export async function deleteAdminUser(token: string, userId: string) {
   return (await response.json()) as { message: string; item: { id: string } };
 }
 
+
+export type AdminOverview = {
+  reviews: { total: number; active: number; trashed: number; private: number; last7Days: number };
+  users: { total: number; admins: number; withoutCouple: number };
+  security: { failedLogins7Days: number };
+};
+
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  actorId: string | null;
+  actorName: string;
+  actorLogin: string;
+  actorRole: number;
+  targetType: "review" | "user" | "system";
+  targetId: string | null;
+  targetLabel: string;
+  details: Record<string, unknown>;
+  ip: string;
+  createdAt: string;
+};
+
+type Paginated<T> = {
+  items: T[];
+  meta: { page: number; pageSize: number; total: number; hasMore: boolean };
+};
+
+export async function fetchAdminOverview(token: string) {
+  const response = await apiFetch(`${getApiUrl()}/admin/overview`, {
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível carregar o resumo"));
+  }
+
+  return (await response.json()) as AdminOverview;
+}
+
+export async function fetchTrash(
+  token: string,
+  page = 1,
+  query = "",
+  visibility: "all" | "public" | "private" = "all"
+) {
+  const params = new URLSearchParams({ page: String(page), visibility });
+  if (query.trim()) {
+    params.set("q", query.trim());
+  }
+
+  const response = await apiFetch(`${getApiUrl()}/admin/trash?${params.toString()}`, {
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível carregar a lixeira"));
+  }
+
+  const data = (await response.json()) as AdminReviewsResponse;
+  return { items: data.items.map(mapReview), meta: data.meta };
+}
+
+export async function deleteTrashedReview(token: string, reviewId: string) {
+  const response = await apiFetch(`${getApiUrl()}/admin/trash/${reviewId}`, {
+    method: "DELETE",
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível excluir a avaliação"));
+  }
+}
+
+export async function fetchAuditLogs(token: string, page = 1, query = "", action = "all") {
+  const params = new URLSearchParams({ page: String(page), action });
+  if (query.trim()) {
+    params.set("q", query.trim());
+  }
+
+  const response = await apiFetch(`${getApiUrl()}/admin/logs?${params.toString()}`, {
+    headers: headers(token),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível carregar as ocorrências"));
+  }
+
+  return (await response.json()) as Paginated<AuditLogEntry>;
+}
+
+export async function purgeOldData(token: string, target: "trash" | "logs", before: string) {
+  const response = await apiFetch(`${getApiUrl()}/admin/purge`, {
+    method: "POST",
+    headers: headers(token),
+    body: JSON.stringify({ target, before }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Não foi possível limpar"));
+  }
+
+  return (await response.json()) as { removed: number };
+}
