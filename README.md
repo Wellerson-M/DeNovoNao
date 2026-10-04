@@ -34,6 +34,7 @@ Aplicativo web (PWA) para casais registrarem avaliações de lanchonetes, restau
 
 ```txt
 DeNovoNao/
+├── .github/workflows/keep-alive.yml  # Ping a cada 10 min para a API do Render não "dormir" (plano gratuito)
 ├── package.json            # Scripts da raiz: sobe front + back juntos (concurrently), Mongo via Docker
 ├── docker-compose.yml      # MongoDB 7 local (container "avalieitor-mongo", porta 27017)
 ├── DEPLOY.md               # Passo a passo de publicação (Vercel + Render + Atlas)

@@ -6,7 +6,7 @@ import { createReview, fetchReviews, removeReview, updateReview } from "@/lib/ap
 import { generateClientId } from "@/lib/client-id";
 import { db, deleteQueuedReview } from "@/lib/offline/db";
 import { mergeReviews } from "@/lib/offline/merge-reviews";
-import { saveReviewOffline, subscribeSync, syncPendingReviews } from "@/lib/offline/sync";
+import { saveReviewOffline, subscribeSync } from "@/lib/offline/sync";
 import type { ReviewInput, ReviewRecord, ReviewsMeta } from "@/lib/types";
 
 const EMPTY_META: ReviewsMeta = {
@@ -16,6 +16,37 @@ const EMPTY_META: ReviewsMeta = {
   hasMore: false,
   averagePlaceRating: null,
 };
+
+// Último feed padrão (página 1, sem filtros) guardado no aparelho: aparece na hora ao abrir
+// o app e é substituído quando a API responder.
+const FEED_CACHE_PREFIX = "denovonao-feed:";
+
+function feedCacheKey(token: string | null) {
+  return FEED_CACHE_PREFIX + (token ? token.slice(-16) : "anon");
+}
+
+function readFeedCache(token: string | null): { items: ReviewRecord[]; meta: ReviewsMeta } | null {
+  try {
+    const raw = window.localStorage.getItem(feedCacheKey(token));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeFeedCache(token: string | null, value: { items: ReviewRecord[]; meta: ReviewsMeta }) {
+  try {
+    for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith(FEED_CACHE_PREFIX) && key !== feedCacheKey(token)) {
+        window.localStorage.removeItem(key);
+      }
+    }
+    window.localStorage.setItem(feedCacheKey(token), JSON.stringify(value));
+  } catch {
+    // sem espaço ou sem storage: segue sem cache
+  }
+}
 
 export function useReviews(params: {
   query: string;
@@ -39,9 +70,18 @@ export function useReviews(params: {
 
   const loadPage = useCallback(
     async (page: number, mode: "replace" | "append") => {
+      const isDefaultFeed = page === 1 && !query && !rating;
+
       try {
         if (mode === "replace") {
-          setIsLoading(true);
+          const cached = isDefaultFeed ? readFeedCache(token) : null;
+          if (cached) {
+            setRemoteReviews(cached.items);
+            setMeta(cached.meta);
+            setIsLoading(false);
+          } else {
+            setIsLoading(true);
+          }
         } else {
           setIsLoadingMore(true);
         }
@@ -54,6 +94,9 @@ export function useReviews(params: {
         });
 
         setMeta(response.meta ?? EMPTY_META);
+        if (isDefaultFeed) {
+          writeFeedCache(token, { items: response.items, meta: response.meta ?? EMPTY_META });
+        }
         setCurrentPage(page);
         setError(null);
 
@@ -68,7 +111,8 @@ export function useReviews(params: {
         });
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : "Erro ao carregar avaliações");
-        if (mode === "replace") {
+        // Sem rede ou API fora do ar: mantém o feed guardado em vez de esvaziar a tela.
+        if (mode === "replace" && !(isDefaultFeed && readFeedCache(token))) {
           setRemoteReviews([]);
           setMeta(EMPTY_META);
         }
@@ -103,12 +147,6 @@ export function useReviews(params: {
 
     return unsubscribe;
   }, [reload]);
-
-  useEffect(() => {
-    if (isOnline) {
-      void syncPendingReviews(token).then(() => reload());
-    }
-  }, [isOnline, reload, token]);
 
   const createOrQueueReview = useCallback(
     async (input: ReviewInput) => {

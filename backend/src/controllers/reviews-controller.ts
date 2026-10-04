@@ -148,7 +148,10 @@ function normalizeReviewDocument(review: Record<string, unknown>) {
 }
 
 async function attachPublisherLabels(items: Array<ReturnType<typeof normalizeReviewDocument>>) {
-  const idCasais = Array.from(new Set(items.map((item) => item.id_casal).filter(Boolean)));
+  // Só busca nomes no banco para avaliações que ainda não têm autor gravado (economiza uma consulta).
+  const idCasais = Array.from(
+    new Set(items.filter((item) => !item.publisherLabel).map((item) => item.id_casal).filter(Boolean))
+  );
 
   if (idCasais.length === 0) {
     return items;

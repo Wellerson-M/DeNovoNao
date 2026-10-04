@@ -16,7 +16,7 @@ export function LoginPage() {
   const router = useRouter();
   const { loginAsVisitor, loginWithToken } = useAuth();
   const { isOnline } = useConnection();
-  const { showLoaderFor, withLoader } = useUi();
+  const { withLoader } = useUi();
   const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("");
   const [login, setLogin] = useState("");
@@ -40,11 +40,10 @@ export function LoginPage() {
     try {
       const response =
         mode === "login"
-          ? await withLoader(loginUser({ login, password }), 520)
-          : await withLoader(registerUser({ name, login, password }), 520);
+          ? await withLoader(loginUser({ login, password }))
+          : await withLoader(registerUser({ name, login, password }));
 
       loginWithToken(response.token);
-      showLoaderFor(520);
       router.push("/");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Não foi possível entrar");
@@ -180,7 +179,6 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    showLoaderFor(420);
                     loginAsVisitor();
                     router.push("/");
                   }}
