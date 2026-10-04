@@ -29,6 +29,7 @@ import { LogoMark, Wordmark } from "@/components/brand";
 import { ReviewForm } from "@/components/review-form";
 import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useReviews } from "@/hooks/use-reviews";
 import { useUi } from "@/contexts/ui-context";
 import type { ReviewInput, ReviewRecord } from "@/lib/types";
@@ -39,17 +40,6 @@ const SEARCH_DEBOUNCE_MS = 350;
 
 function formatVisitedDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value));
-}
-
-function useDebouncedValue<T>(value: T, delayMs: number) {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [value, delayMs]);
-
-  return debounced;
 }
 
 function Stars({ value }: { value: number }) {

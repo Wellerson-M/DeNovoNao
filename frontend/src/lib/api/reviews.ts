@@ -162,3 +162,19 @@ export async function removeReview(reviewId: string, token: string, mode: "soft"
   const data = (await response.json()) as { item: ServerReview };
   return mapReview(data.item);
 }
+
+export async function restoreReview(reviewId: string, token: string) {
+  const response = await fetch(`${getApiUrl()}/reviews/${reviewId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify({ active: true }),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Não foi possível restaurar a avaliação");
+  }
+}

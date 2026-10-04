@@ -8,6 +8,7 @@ type ReviewBody = {
   criticalWarnings?: unknown;
   visitedAt?: unknown;
   isPublic?: unknown;
+  active?: unknown;
 };
 
 function asString(value: unknown) {
@@ -124,6 +125,11 @@ export function parseUpdateReviewInput(input: ReviewBody) {
       throw new Error("A data da visita precisa ser válida.");
     }
     patch.visitedAt = visitedAt;
+  }
+
+  // Restaurar da lixeira (o controller só permite para admin).
+  if (typeof input.active === "boolean") {
+    patch.active = input.active;
   }
 
   if (input.isPublic !== undefined) {
