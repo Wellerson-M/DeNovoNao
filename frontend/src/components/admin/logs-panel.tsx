@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, LoaderCircle, UserRound } from "lucide-react";
+import clsx from "clsx";
+import { ChevronRight, Download, LoaderCircle, Star, UserRound } from "lucide-react";
 import { downloadLogsCsv, fetchAuditLogs, purgeOldData, type AuditLogEntry } from "@/lib/api/admin";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { Chip, EmptyState, FilterRow, LoadingRows, SearchField } from "@/components/admin/ui";
@@ -26,31 +27,138 @@ function formatMoment(value: string) {
   }).format(date);
 }
 
-function LogRow({ log }: { log: AuditLogEntry }) {
+function formatFullMoment(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "full", timeStyle: "medium" }).format(new Date(value));
+}
+
+function LogRow({
+  log,
+  isOpen,
+  onToggle,
+  onOpenUser,
+  onOpenReview,
+  onSearchIp,
+}: {
+  log: AuditLogEntry;
+  isOpen: boolean;
+  onToggle: () => void;
+  onOpenUser: (search: string) => void;
+  onOpenReview: (search: string) => void;
+  onSearchIp: (ip: string) => void;
+}) {
   const who = log.actorName || log.actorLogin || "Alguém";
   const details = describeDetails(log.details);
   const tone = ACTION_TONES[log.action] ?? "neutral";
 
+  // Quem agiu só é "achável" se tiver conta; login falhado não tem.
+  const userSearch = log.actorLogin || log.actorName || "";
+  const canOpenUser = Boolean(userSearch) && (log.targetType === "user" || log.actorId);
+  const canOpenReview = log.targetType === "review" && Boolean(log.targetLabel);
+  const failedLogin = log.action === "auth.login_failed";
+
   return (
-    <article className="grid gap-1.5 rounded-[18px] border border-[var(--panel-border)] bg-[var(--panel)] p-3.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone={tone}>{describeAction(log.action)}</Chip>
-        <span className="text-xs text-[var(--muted)] tabular-nums">{formatMoment(log.createdAt)}</span>
-      </div>
+    <article
+      className={clsx(
+        "overflow-hidden rounded-[18px] border bg-[var(--panel)]",
+        isOpen ? "border-[var(--accent-soft)]" : "border-[var(--panel-border)]"
+      )}
+    >
+      <button type="button" onClick={onToggle} className="flex w-full items-start gap-3 p-3.5 text-left hover:bg-[var(--panel-hover)]">
+        <span className="min-w-0 flex-1 grid gap-1.5">
+          <span className="flex flex-wrap items-center gap-2">
+            <Chip tone={tone}>{describeAction(log.action)}</Chip>
+            <span className="text-xs text-[var(--muted)] tabular-nums">{formatMoment(log.createdAt)}</span>
+          </span>
 
-      <p className="text-sm text-[var(--text-soft)]">
-        <span className="inline-flex items-center gap-1 font-semibold text-[var(--text)]">
-          <UserRound className="h-3.5 w-3.5" />
-          {who}
-          {log.actorRole === 2 ? <span className="text-[var(--accent-soft)]">(admin)</span> : null}
+          <span className="block text-sm text-[var(--text-soft)]">
+            <span className="inline-flex items-center gap-1 font-semibold text-[var(--text)]">
+              <UserRound className="h-3.5 w-3.5" />
+              {who}
+              {log.actorRole === 2 ? <span className="text-[var(--accent-soft)]">(admin)</span> : null}
+            </span>
+            {log.targetLabel && log.targetLabel !== who ? (
+              <span className="text-[var(--muted-strong)]"> · {log.targetLabel}</span>
+            ) : null}
+          </span>
+
+          {details ? <span className="block text-xs text-[var(--muted)]">{details}</span> : null}
         </span>
-        {log.targetLabel && log.targetLabel !== who ? (
-          <span className="text-[var(--muted-strong)]"> · {log.targetLabel}</span>
-        ) : null}
-      </p>
 
-      {details ? <p className="text-xs text-[var(--muted)]">{details}</p> : null}
-      {log.ip ? <p className="text-[11px] text-[var(--muted)] tabular-nums">IP {log.ip}</p> : null}
+        <ChevronRight className={clsx("mt-1 h-4 w-4 shrink-0 text-[var(--muted)] transition-transform", isOpen && "rotate-90")} />
+      </button>
+
+      {isOpen ? (
+        <div className="animate-fade-up grid gap-3 border-t border-[var(--panel-border)] p-3.5">
+          <dl className="grid gap-1.5 text-xs">
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0 text-[var(--muted)]">Quando</dt>
+              <dd className="text-[var(--text-soft)]">{formatFullMoment(log.createdAt)}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0 text-[var(--muted)]">Quem</dt>
+              <dd className="text-[var(--text-soft)]">
+                {who}
+                {log.actorLogin ? ` (@${log.actorLogin})` : ""}
+              </dd>
+            </div>
+            {log.targetLabel ? (
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-[var(--muted)]">Alvo</dt>
+                <dd className="text-[var(--text-soft)]">{log.targetLabel}</dd>
+              </div>
+            ) : null}
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0 text-[var(--muted)]">IP</dt>
+              <dd className="tabular-nums text-[var(--text-soft)]">{log.ip || "não registrado"}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="w-20 shrink-0 text-[var(--muted)]">Ação</dt>
+              <dd className="font-mono text-[11px] text-[var(--muted-strong)]">{log.action}</dd>
+            </div>
+          </dl>
+
+          {failedLogin ? (
+            <p className="rounded-xl border border-[var(--danger-border)] bg-[var(--danger-bg)] p-2.5 text-xs text-[var(--danger-text)]">
+              Tentativa de entrar que não deu certo. Se o login existe e não foi você, gere uma senha nova
+              ou suspenda a conta.
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap gap-2">
+            {canOpenUser ? (
+              <button
+                type="button"
+                onClick={() => onOpenUser(userSearch)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--text-soft)] hover:border-[var(--accent-soft)]"
+              >
+                <UserRound className="h-3.5 w-3.5" />
+                Abrir usuário
+              </button>
+            ) : null}
+
+            {canOpenReview ? (
+              <button
+                type="button"
+                onClick={() => onOpenReview(log.targetLabel)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--text-soft)] hover:border-[var(--accent-soft)]"
+              >
+                <Star className="h-3.5 w-3.5" />
+                Abrir avaliação
+              </button>
+            ) : null}
+
+            {log.ip ? (
+              <button
+                type="button"
+                onClick={() => onSearchIp(log.ip)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2 text-xs font-semibold text-[var(--text-soft)] hover:border-[var(--accent-soft)]"
+              >
+                Ver tudo deste IP
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -59,10 +167,14 @@ export function LogsPanel({
   token,
   notify,
   initialFilter = "all",
+  onOpenUser,
+  onOpenReview,
 }: {
   token: string;
   notify: (tone: "success" | "error", text: string) => void;
   initialFilter?: string;
+  onOpenUser: (search: string) => void;
+  onOpenReview: (search: string) => void;
 }) {
   const [items, setItems] = useState<AuditLogEntry[]>([]);
   const [page, setPage] = useState(1);
@@ -74,6 +186,7 @@ export function LogsPanel({
   const [purgeDays, setPurgeDays] = useState<number | null>(null);
   const [isPurging, setIsPurging] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [openLogId, setOpenLogId] = useState<string | null>(null);
   const debouncedQuery = useDebouncedValue(query.trim());
 
   const load = useCallback(
@@ -186,7 +299,19 @@ export function LogsPanel({
       {!isLoading && items.length === 0 ? <EmptyState>Nenhuma ocorrência para este filtro.</EmptyState> : null}
 
       {items.map((log) => (
-        <LogRow key={log.id} log={log} />
+        <LogRow
+          key={log.id}
+          log={log}
+          isOpen={openLogId === log.id}
+          onToggle={() => setOpenLogId((current) => (current === log.id ? null : log.id))}
+          onOpenUser={onOpenUser}
+          onOpenReview={onOpenReview}
+          onSearchIp={(ip) => {
+            setQuery(ip);
+            setAction("all");
+            setOpenLogId(null);
+          }}
+        />
       ))}
 
       {hasMore ? (

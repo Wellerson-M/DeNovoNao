@@ -13,10 +13,13 @@ export function rateLimit({
   windowMs,
   max,
   message,
+  keyBy,
 }: {
   windowMs: number;
   max: number;
   message: string;
+  /** Como agrupar as tentativas. O padrão é por IP. */
+  keyBy?: (request: Request) => string | null;
 }) {
   const buckets = new Map<string, Bucket>();
 
@@ -32,7 +35,13 @@ export function rateLimit({
       }
     }
 
-    const key = clientIp(request);
+    const key = keyBy ? keyBy(request) : clientIp(request);
+
+    // Sem chave (ex.: requisição sem login no corpo): não conta.
+    if (!key) {
+      return next();
+    }
+
     const bucket = buckets.get(key);
 
     if (!bucket || bucket.resetAt <= now) {

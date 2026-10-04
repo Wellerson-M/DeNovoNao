@@ -19,6 +19,7 @@ import {
   Search,
   Settings2,
   Shield,
+  Check,
   Star,
   SunMedium,
   Trash2,
@@ -246,22 +247,17 @@ function ReviewCard({
         </div>
       ) : null}
 
-      {review.priceAmount !== null || review.priceNote ? (
-        <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--muted-strong)]">
-          <Wallet className="h-4 w-4 shrink-0 text-[var(--muted)]" />
-          {review.priceAmount !== null ? (
-            <span className="font-semibold text-[var(--text-soft)]">{formatPrice(review.priceAmount)} por pessoa</span>
-          ) : null}
-          {review.priceNote ? <span className="break-words">{review.priceNote}</span> : null}
-          {priceRange && priceRange.count > 1 ? (
-            <span className="text-[var(--muted)]">
-              · neste lugar: {formatPriceRange(priceRange.min, priceRange.max)}
-            </span>
-          ) : null}
-        </p>
-      ) : null}
-
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
+        {review.priceAmount !== null ? (
+          <span className="inline-flex items-center gap-1">
+            <Wallet className="h-3.5 w-3.5" />
+            aprox. {formatPrice(review.priceAmount)} por pessoa
+          </span>
+        ) : null}
+        {review.priceNote ? <span className="break-words">{review.priceNote}</span> : null}
+        {priceRange && priceRange.count > 1 ? (
+          <span>neste lugar: {formatPriceRange(priceRange.min, priceRange.max)}</span>
+        ) : null}
         <span>Visita em {formatVisitedDate(review.visitedAt)}</span>
         {review.isPublic && review.publisherLabel ? <span>Por {review.publisherLabel}</span> : null}
       </div>
@@ -471,6 +467,7 @@ export function HomePage() {
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [justRefreshedAt, setJustRefreshedAt] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [myVisibleCount, setMyVisibleCount] = useState(5);
@@ -514,11 +511,28 @@ export function HomePage() {
     setMyVisibleCount(5);
   }, [debouncedQuery, ratingFilter]);
 
+  useEffect(() => {
+    if (justRefreshedAt === null) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setJustRefreshedAt(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [justRefreshedAt]);
+
   async function handleRefresh() {
     setIsRefreshing(true);
+    const startedAt = Date.now();
+
     try {
       await reload();
+      setJustRefreshedAt(Date.now());
     } finally {
+      // Garante que o estado "Atualizando..." apareça, mesmo quando a resposta é instantânea.
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < 450) {
+        await new Promise((resolve) => window.setTimeout(resolve, 450 - elapsed));
+      }
       setIsRefreshing(false);
     }
   }
@@ -657,11 +671,19 @@ export function HomePage() {
                 <button
                   type="button"
                   onClick={() => void handleRefresh()}
-                  className="inline-flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-[20px] border border-[var(--field-border)] bg-[var(--field-bg-strong)] text-sm font-medium text-[var(--text-soft)] hover:border-[var(--accent-soft)] sm:w-auto sm:px-4"
+                  disabled={isRefreshing}
+                  className={clsx(
+                    "inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-[20px] border px-3 text-sm font-semibold sm:px-4",
+                    isRefreshing
+                      ? "border-[var(--accent-soft)] bg-[var(--accent-glass)] text-[var(--accent-soft)]"
+                      : "border-[var(--field-border)] bg-[var(--field-bg-strong)] text-[var(--text-soft)] hover:border-[var(--accent-soft)]"
+                  )}
                   aria-label="Atualizar feed"
                 >
                   <RefreshCcw className={clsx("h-4 w-4", isRefreshing && "animate-spin")} />
-                  <span className="hidden sm:inline">Atualizar</span>
+                  <span className={clsx(isRefreshing ? "inline" : "hidden sm:inline")}>
+                    {isRefreshing ? "Atualizando..." : "Atualizar"}
+                  </span>
                 </button>
               </div>
 
@@ -729,6 +751,13 @@ export function HomePage() {
           </div>
         </section>
 
+        {justRefreshedAt !== null && !isRefreshing ? (
+          <p className="animate-fade-up inline-flex items-center gap-2 self-start rounded-full border border-[var(--success-border)] bg-[var(--success-bg)] px-4 py-1.5 text-sm font-semibold text-[var(--success-text)]">
+            <Check className="h-4 w-4" />
+            Feed atualizado
+          </p>
+        ) : null}
+
         {sessionExpired ? (
           <div className="animate-fade-up flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]">
             <span>Sua sessão expirou. Entre de novo para ver e publicar as suas avaliações.</span>
@@ -774,7 +803,9 @@ export function HomePage() {
               )}
             </h2>
             <p className="mt-1 text-sm text-[var(--muted-strong)]">
-              {isLoading ? "Carregando..." : `${totalVisible} ${totalVisible === 1 ? "avaliação visível" : "avaliações visíveis"}`}
+              {isLoading
+                ? "Carregando..."
+                : `${totalVisible} ${totalVisible === 1 ? "avaliação visível" : "avaliações visíveis"}`}
             </p>
           </div>
         </div>

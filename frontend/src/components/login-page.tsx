@@ -21,6 +21,7 @@ export function LoginPage() {
   const [name, setName] = useState("");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,6 +36,19 @@ export function LoginPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (mode === "register") {
+      if (password.length < 6) {
+        setError("A senha precisa ter pelo menos 6 caracteres.");
+        return;
+      }
+
+      if (password !== confirmation) {
+        setError("As duas senhas não são iguais.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -108,6 +122,7 @@ export function LoginPage() {
                   onClick={() => {
                     setMode(tab.key);
                     setError(null);
+                    setConfirmation("");
                   }}
                   className={clsx(
                     "rounded-full px-4 py-2 text-sm font-medium transition",
@@ -155,11 +170,30 @@ export function LoginPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
-                  placeholder="Mínimo de 6 caracteres"
+                  minLength={mode === "register" ? 6 : undefined}
+                  placeholder={mode === "register" ? "Mínimo de 6 caracteres" : "Sua senha"}
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                   required
                 />
               </label>
+
+              {mode === "register" ? (
+                <label className="grid gap-2">
+                  <span className="text-sm text-[var(--muted-strong)]">Repita a senha</span>
+                  <input
+                    type="password"
+                    value={confirmation}
+                    onChange={(event) => setConfirmation(event.target.value)}
+                    className="rounded-3xl border border-[var(--field-border)] bg-[var(--field-bg)] px-4 py-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)]"
+                    placeholder="A mesma senha de novo"
+                    autoComplete="new-password"
+                    required
+                  />
+                  {confirmation && password !== confirmation ? (
+                    <span className="text-xs text-[var(--danger-text)]">As senhas não batem.</span>
+                  ) : null}
+                </label>
+              ) : null}
 
               {error ? (
                 <p className="rounded-2xl border border-[var(--danger-border)] bg-[var(--danger-bg)] px-4 py-3 text-sm text-[var(--danger-text)]">
