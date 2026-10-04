@@ -1,4 +1,5 @@
 # Deploy Para Celular
+n> Visão geral do projeto e mapa de pastas: veja o [README](README.md).
 
 Objetivo: publicar o app para abrir no Android e iPhone fora da rede local e permitir instalacao como web app.
 
@@ -24,6 +25,7 @@ Variaveis de ambiente:
 - `MONGODB_URI=<sua-string-do-atlas>`
 - `CLIENT_ORIGIN=<url-do-frontend>`
 - `STORAGE_MODE=auto`
+- `JWT_SECRET=<um-segredo-longo-e-aleatorio>` (obrigatório trocar; não use `change-me`)
 
 Depois de publicar, voce tera uma URL parecida com:
 
