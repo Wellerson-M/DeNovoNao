@@ -23,6 +23,7 @@ type JwtPayload = {
 
 type CurrentUserRecord = {
   _id: unknown;
+  active?: boolean;
   role?: number;
   id_casal?: string | number | null;
   name?: string;
@@ -78,7 +79,12 @@ async function resolveAuthUser(token: string): Promise<AuthUser | null> {
   try {
     const currentUser = (await User.findById(authUser.id).lean()) as CurrentUserRecord | null;
 
-    if (currentUser) {
+    // Usuário apagado ou desativado: o token antigo não vale mais.
+    if (!currentUser || currentUser.active === false) {
+      return null;
+    }
+
+    {
       authUser = {
         id: String(currentUser._id),
         role: currentUser.role === 2 ? 2 : currentUser.role === 1 ? 1 : 0,
@@ -89,7 +95,8 @@ async function resolveAuthUser(token: string): Promise<AuthUser | null> {
       };
     }
   } catch {
-    // Se a consulta ao banco falhar, seguimos com os dados do token.
+    // Se o banco estiver fora, seguimos com os dados do token para não derrubar
+    // quem já estava logado. Usuário inexistente já foi barrado acima.
   }
 
   return authUser;

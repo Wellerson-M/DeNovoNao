@@ -20,6 +20,10 @@ import {
   X,
 } from "lucide-react";
 import { LogoIcon } from "@/components/brand";
+import { Chip, EmptyState, LoadingRows, SearchField } from "@/components/admin/ui";
+import { LogsPanel } from "@/components/admin/logs-panel";
+import { OverviewPanel } from "@/components/admin/overview-panel";
+import { TrashPanel } from "@/components/admin/trash-panel";
 import { useAuth } from "@/hooks/use-auth";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
@@ -32,7 +36,22 @@ import {
 import { removeReview, restoreReview } from "@/lib/api/reviews";
 import type { ReviewRecord, UserRecord } from "@/lib/types";
 
-type AdminTab = "users" | "reviews";
+type AdminTab = "overview" | "reviews" | "trash" | "logs" | "users";
+
+// Cada aba tem endereço próprio (/admin#lixeira), então dá para salvar o link.
+const TAB_HASHES: Record<AdminTab, string> = {
+  overview: "resumo",
+  reviews: "moderacao",
+  trash: "lixeira",
+  logs: "ocorrencias",
+  users: "usuarios",
+};
+
+function tabFromHash(): AdminTab | null {
+  const hash = window.location.hash.replace("#", "");
+  const entry = (Object.entries(TAB_HASHES) as Array<[AdminTab, string]>).find(([, value]) => value === hash);
+  return entry ? entry[0] : null;
+}
 
 type ModerationGroup = {
   key: string;
@@ -46,65 +65,6 @@ const ROLE_LABELS: Record<number, string> = { 0: "Visitante", 1: "Usuário", 2: 
 
 function formatVisitDate(value: string) {
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value));
-}
-
-function Chip({ tone = "neutral", children }: { tone?: "neutral" | "danger" | "accent"; children: React.ReactNode }) {
-  return (
-    <span
-      className={clsx(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
-        tone === "neutral" && "border-[var(--field-border)] text-[var(--muted-strong)]",
-        tone === "danger" && "border-[var(--danger-border)] bg-[var(--danger-bg)] text-[var(--danger-text)]",
-        tone === "accent" && "border-transparent bg-[var(--accent-glass)] text-[var(--accent-soft)]"
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-function SearchField({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
-  return (
-    <label className="flex items-center gap-3 rounded-[18px] border border-[var(--field-border)] bg-[var(--field-bg-strong)] px-4 py-3 focus-within:border-[var(--accent-soft)] focus-within:shadow-[0_0_0_3px_var(--accent-ring)]">
-      <Search className="h-4 w-4 shrink-0 text-[var(--muted)]" />
-      <input
-        type="search"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        enterKeyHint="search"
-        className="w-full min-w-0 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] [&::-webkit-search-cancel-button]:hidden"
-      />
-      {value ? (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--panel-hover)] text-[var(--muted-strong)]"
-          aria-label="Limpar busca"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      ) : null}
-    </label>
-  );
-}
-
-function EmptyState({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-[20px] border border-dashed border-[var(--field-border)] px-4 py-8 text-center text-sm text-[var(--muted-strong)]">
-      {children}
-    </div>
-  );
-}
-
-function LoadingRows() {
-  return (
-    <div className="grid gap-3" aria-hidden="true">
-      {[0, 1, 2].map((index) => (
-        <div key={index} className="skeleton h-20 rounded-[20px]" />
-      ))}
-    </div>
-  );
 }
 
 /**
@@ -359,7 +319,9 @@ function ReviewListItem({ review, isSelected, onSelect }: { review: ReviewRecord
 
 export function AdminPage() {
   const { session } = useAuth();
-  const [tab, setTab] = useState<AdminTab>("reviews");
+  const [tab, setTab] = useState<AdminTab>("overview");
+  const [logsFilter, setLogsFilter] = useState("all");
+  const [dataVersion, setDataVersion] = useState(0);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
   const [userReviews, setUserReviews] = useState<ReviewRecord[]>([]);
@@ -387,6 +349,19 @@ export function AdminPage() {
   const feedbackTimer = useRef<number | null>(null);
   const reviewSheet = useMobileSheet("review");
   const userSheet = useMobileSheet("user");
+
+  useEffect(() => {
+    const fromHash = tabFromHash();
+    if (fromHash) {
+      setTab(fromHash);
+    }
+  }, []);
+
+  function changeTab(next: AdminTab) {
+    setTab(next);
+    // replaceState para não atrapalhar o "voltar" das telas cheias do celular.
+    window.history.replaceState(window.history.state, "", `#${TAB_HASHES[next]}`);
+  }
 
   const adminToken = session?.token ?? "";
   const isAdmin = Boolean(session && session.role >= 2);
@@ -507,6 +482,7 @@ export function AdminPage() {
   }
 
   async function refreshAfterReviewChange() {
+    setDataVersion((current) => current + 1);
     await loadReviews(1, "replace");
     if (selectedUser) {
       await loadSelectedUserReviews(selectedUser);
@@ -646,28 +622,51 @@ export function AdminPage() {
         </div>
 
         <div className="mx-auto max-w-6xl px-4 pb-3 sm:px-6">
-          <div className="grid grid-cols-2 gap-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] p-1" role="tablist">
-            {[
-              { key: "reviews" as const, label: "Moderação" },
-              { key: "users" as const, label: "Usuários" },
-            ].map((item) => (
-              <button
-                key={item.key}
-                type="button"
-                role="tab"
-                aria-selected={tab === item.key}
-                onClick={() => setTab(item.key)}
-                className={clsx("rounded-full px-4 py-2 text-sm font-semibold", tab === item.key ? "btn-primary" : "text-[var(--text-soft)]")}
-              >
-                {item.label}
-              </button>
-            ))}
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 [scrollbar-width:none]">
+            <div className="flex min-w-max gap-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] p-1" role="tablist">
+              {[
+                { key: "overview" as const, label: "Resumo" },
+                { key: "reviews" as const, label: "Moderação" },
+                { key: "trash" as const, label: "Lixeira" },
+                { key: "logs" as const, label: "Ocorrências" },
+                { key: "users" as const, label: "Usuários" },
+              ].map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === item.key}
+                  onClick={() => changeTab(item.key)}
+                  className={clsx(
+                    "shrink-0 rounded-full px-4 py-2 text-sm font-semibold",
+                    tab === item.key ? "btn-primary" : "text-[var(--text-soft)]"
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-4 pb-24 pt-5 sm:px-6">
-        {tab === "reviews" ? (
+        {tab === "overview" ? (
+          <OverviewPanel
+            token={adminToken}
+            refreshKey={dataVersion}
+            onError={(message) => notify("error", message)}
+            onOpenTrash={() => changeTab("trash")}
+            onOpenLogs={() => {
+              setLogsFilter("auth.login_failed");
+              changeTab("logs");
+            }}
+          />
+        ) : tab === "trash" ? (
+          <TrashPanel token={adminToken} notify={notify} onChanged={() => setDataVersion((current) => current + 1)} />
+        ) : tab === "logs" ? (
+          <LogsPanel token={adminToken} notify={notify} initialFilter={logsFilter} />
+        ) : tab === "reviews" ? (
           <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.1fr)] xl:items-start">
             <div className="grid gap-4">
               <SearchField value={reviewQuery} onChange={setReviewQuery} placeholder="Buscar local, opinião, aviso ou nota" />

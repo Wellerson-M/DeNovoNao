@@ -5,9 +5,12 @@ import mongoose from "mongoose";
 import { User } from "../models/User.js";
 import { getReviewDriver } from "../data/review-store.js";
 import { signAuthToken } from "../utils/auth-token.js";
+import { recordAudit } from "../utils/audit.js";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOGIN_REGEX = /^[a-zA-Z0-9._-]{3,30}$/;
+// Hash fixo de uma senha aleatória, só para gastar o mesmo tempo quando o login não existe.
+const DUMMY_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8.zq1qvZ1l6S2N9lJ1YQ9vQ0Qe5Zqa";
 
 function normalizeLogin(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
@@ -165,6 +168,14 @@ export async function registerController(request: Request, response: Response) {
       role: user.role,
       id_casal: user.id_casal == null ? null : String(user.id_casal),
     });
+    await recordAudit(request, {
+      action: "user.register",
+      targetType: "user",
+      targetId: String(user._id),
+      targetLabel: user.login ?? login,
+      actor: { id: String(user._id), name: user.name, login: user.login ?? login, role: user.role },
+    });
+
 
     return response.status(201).json({
       token,
@@ -191,11 +202,29 @@ export async function loginController(request: Request, response: Response) {
     });
 
     if (!user || !user.active) {
+      // Compara contra um hash descartável para o tempo de resposta não revelar
+      // se o login existe (enumeração de usuários).
+      await bcrypt.compare(password, DUMMY_HASH);
+      await recordAudit(request, {
+        action: "auth.login_failed",
+        targetType: "user",
+        targetLabel: login,
+        details: { reason: user ? "inativo" : "login inexistente" },
+        actor: { login },
+      });
       return response.status(401).json({ message: "Login ou senha inválidos." });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
+      await recordAudit(request, {
+        action: "auth.login_failed",
+        targetType: "user",
+        targetId: String(user._id),
+        targetLabel: user.login ?? login,
+        details: { reason: "senha incorreta" },
+        actor: { login },
+      });
       return response.status(401).json({ message: "Login ou senha inválidos." });
     }
 
@@ -206,6 +235,14 @@ export async function loginController(request: Request, response: Response) {
       email: user.email ?? "",
       role: user.role,
       id_casal: user.id_casal == null ? null : String(user.id_casal),
+    });
+
+    await recordAudit(request, {
+      action: "auth.login",
+      targetType: "user",
+      targetId: String(user._id),
+      targetLabel: user.login ?? login,
+      actor: { id: String(user._id), name: user.name, login: user.login ?? login, role: user.role },
     });
 
     return response.status(200).json({
@@ -257,6 +294,14 @@ export async function updateMeController(request: Request, response: Response) {
     }
 
     await user.save();
+
+    await recordAudit(request, {
+      action: input.newPassword ? "user.password_change" : "user.profile_update",
+      targetType: "user",
+      targetId: String(user._id),
+      targetLabel: user.login ?? "",
+      details: { fields: Object.keys(input).filter((key) => key !== "currentPassword" && key !== "newPassword") },
+    });
 
     const token = signAuthToken({
       userId: String(user._id),

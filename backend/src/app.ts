@@ -6,6 +6,18 @@ import { authRouter } from "./routes/auth.js";
 import { reviewsRouter } from "./routes/reviews.js";
 
 export const app = express();
+
+// Atrás do proxy do Render/Cloudflare: usa o IP real do visitante
+// no limite de tentativas e no registro de ocorrências.
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
+
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-Frame-Options", "DENY");
+  next();
+});
 // Cada item de CLIENT_ORIGIN pode ter "*" como curinga, ex.:
 // https://denovonao-*.vercel.app libera todos os previews de branch do Vercel.
 const allowedOrigins = [env.clientOrigin, env.previewOrigins]
@@ -28,7 +40,7 @@ app.use(
     exposedHeaders: ["X-Auth-Error"],
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "256kb" }));
 
 app.get("/api/health", (_req, res) => {
   res.json({

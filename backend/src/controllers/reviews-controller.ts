@@ -7,11 +7,25 @@ import { User } from "../models/User.js";
 import { getReviewDriver } from "../data/review-store.js";
 import { escapeRegex } from "../utils/escape-regex.js";
 import { parseCreateReviewInput, parseDeleteMode, parseUpdateReviewInput } from "../utils/parse-review-input.js";
+import { recordAudit } from "../utils/audit.js";
 
 const PAGE_SIZE = 10;
 
 function getRouteId(value: string | string[]) {
   return Array.isArray(value) ? value[0] ?? "" : value;
+}
+
+/**
+ * Só é dono quem tem o MESMO casal, e o casal precisa existir dos dois lados.
+ * Avaliações antigas (sem id_casal) não pertencem a ninguém: apenas admin mexe.
+ */
+function canManageReview(review: Record<string, unknown>, authUser: { role: number; id_casal: string | null }) {
+  if (authUser.role >= 2) {
+    return true;
+  }
+
+  const owner = resolveReviewOwnerIdCasal(review);
+  return Boolean(owner && authUser.id_casal && owner === authUser.id_casal);
 }
 
 function resolveReviewOwnerIdCasal(review: Record<string, unknown>) {
@@ -268,6 +282,14 @@ export async function createReviewController(request: Request, response: Respons
           : "",
     });
 
+    await recordAudit(request, {
+      action: "review.create",
+      targetType: "review",
+      targetId: String(review._id),
+      targetLabel: review.placeName,
+      details: { isPublic: review.isPublic !== false },
+    });
+
     return response.status(201).json({ item: review });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Não foi possível publicar a avaliação.";
@@ -293,7 +315,7 @@ export async function updateReviewController(request: Request, response: Respons
       return response.status(404).json({ message: "Avaliação não encontrada." });
     }
 
-    if (authUser.role < 2 && resolveReviewOwnerIdCasal(review.toObject()) !== authUser.id_casal) {
+    if (!canManageReview(review.toObject(), authUser)) {
       return response.status(403).json({ message: "Você não pode editar esta avaliação." });
     }
 
@@ -301,8 +323,18 @@ export async function updateReviewController(request: Request, response: Respons
     if (authUser.role < 2) {
       delete patch.active;
     }
+    const wasActive = review.active !== false;
     Object.assign(review, patch);
     await review.save();
+
+    const isRestore = patch.active === true && !wasActive;
+    await recordAudit(request, {
+      action: isRestore ? "review.restore" : "review.update",
+      targetType: "review",
+      targetId: String(review._id),
+      targetLabel: review.placeName,
+      details: isRestore ? {} : { fields: Object.keys(patch) },
+    });
 
     return response.status(200).json({ item: review });
   } catch (error) {
@@ -331,17 +363,31 @@ export async function deleteReviewController(request: Request, response: Respons
       return response.status(404).json({ message: "Avaliação não encontrada." });
     }
 
-    if (authUser.role < 2 && resolveReviewOwnerIdCasal(review.toObject()) !== authUser.id_casal) {
+    if (!canManageReview(review.toObject(), authUser)) {
       return response.status(403).json({ message: "Você não pode excluir esta avaliação." });
     }
 
     if (mode === "hard") {
       await Review.deleteOne({ _id: review._id });
+      await recordAudit(request, {
+        action: "review.delete",
+        targetType: "review",
+        targetId: String(review._id),
+        targetLabel: review.placeName,
+        details: { isPublic: review.isPublic !== false },
+      });
       return response.status(200).json({ mode, item: review });
     }
 
     review.active = false;
     await review.save();
+    await recordAudit(request, {
+      action: "review.trash",
+      targetType: "review",
+      targetId: String(review._id),
+      targetLabel: review.placeName,
+      details: { isPublic: review.isPublic !== false },
+    });
     return response.status(200).json({ mode, item: review });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Não foi possível excluir a avaliação.";
