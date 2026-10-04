@@ -427,7 +427,7 @@ export function HomePage() {
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-3xl">
-                <p className="inline-flex rounded-full border border-[var(--hero-border)] bg-[var(--field-bg)] px-3 py-1 text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
+                <p className="brand-wordmark inline-flex px-1 py-1 text-xs uppercase tracking-[0.28em] text-[var(--muted)]">
                   DeNovoNao
                 </p>
                 <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text)] sm:text-5xl">
