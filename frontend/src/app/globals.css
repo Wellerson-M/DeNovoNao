@@ -48,14 +48,14 @@
   --muted-strong: #66545a;
   --panel: rgba(255, 255, 255, 0.56);
   --panel-hover: rgba(255, 255, 255, 0.74);
-  --panel-border: rgba(84, 52, 60, 0.22);
+  --panel-border: rgba(84, 52, 60, 0.3);
   --panel-shadow: 0 16px 40px rgba(65, 36, 43, 0.14);
   --hero-bg: linear-gradient(140deg, rgba(255, 255, 255, 0.64), rgba(255, 240, 234, 0.54));
-  --hero-border: rgba(124, 1, 22, 0.24);
+  --hero-border: rgba(124, 1, 22, 0.34);
   --hero-shadow: 0 24px 56px rgba(67, 38, 46, 0.16);
   --field-bg: rgba(255, 255, 255, 0.72);
   --field-bg-strong: rgba(255, 255, 255, 0.86);
-  --field-border: rgba(91, 57, 65, 0.24);
+  --field-border: rgba(91, 57, 65, 0.34);
   --accent: #7c0116;
   --accent-strong: #9a1329;
   --accent-soft: #b5485c;
@@ -122,4 +122,14 @@ a {
 
 .private {
   opacity: 0.6;
+}
+
+.brand-wordmark {
+  border: 0;
+}
+
+:root[data-theme="light"] .brand-wordmark {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.24em;
 }
