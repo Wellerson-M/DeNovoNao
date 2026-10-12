@@ -9,6 +9,7 @@ import { AuditLog } from "../models/AuditLog.js";
 import { getReviewDriver } from "../data/review-store.js";
 import { escapeRegex } from "../utils/escape-regex.js";
 import { recordAudit } from "../utils/audit.js";
+import { destroyPhotos, normalizePhotos, photoIdsOf } from "../utils/cloudinary.js";
 
 const PAGE_SIZE = 20;
 
@@ -135,6 +136,7 @@ export async function listTrashController(request: Request, response: Response) 
         createdByUserId: typeof review.createdByUserId === "string" ? review.createdByUserId : null,
         createdByName: typeof review.createdByName === "string" ? review.createdByName : null,
         publisherLabel: typeof review.createdByName === "string" ? review.createdByName : null,
+        photos: normalizePhotos(review.photos),
         visitedAt: review.visitedAt ?? review.createdAt,
         createdAt: review.createdAt,
         updatedAt: review.updatedAt,
@@ -228,8 +230,12 @@ export async function purgeController(request: Request, response: Response) {
 
     if (target === "trash") {
       const filter = { active: false, updatedAt: { $lt: before } };
-      const preview = await Review.find(filter).select({ placeName: 1 }).limit(5).lean();
+      const removing = (await Review.find(filter).select({ placeName: 1, photos: 1 }).lean()) as Array<
+        Record<string, unknown>
+      >;
+      const preview = removing.slice(0, 5);
       const result = await Review.deleteMany(filter);
+      await destroyPhotos(removing.flatMap((item) => photoIdsOf(item)));
 
       await recordAudit(request, {
         action: "trash.purge",
@@ -280,6 +286,7 @@ export async function deleteTrashedReviewController(request: Request, response: 
     }
 
     await Review.deleteOne({ _id: review._id });
+    await destroyPhotos(photoIdsOf(review));
 
     await recordAudit(request, {
       action: "review.delete",

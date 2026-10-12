@@ -65,6 +65,19 @@ const reviewSchema = new Schema(
       type: [String],
       default: [],
     },
+    // Fotos no Cloudinary; aqui fica só o endereço (o Atlas grátis tem pouco espaço).
+    photos: {
+      type: [
+        {
+          _id: false,
+          publicId: { type: String, required: true },
+          url: { type: String, required: true },
+          width: { type: Number, default: null },
+          height: { type: Number, default: null },
+        },
+      ],
+      default: [],
+    },
     visitedAt: {
       type: Date,
       required: true,

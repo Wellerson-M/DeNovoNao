@@ -14,6 +14,8 @@ export function mergeReviews(remoteReviews: ReviewRecord[], localReviews: LocalQ
     criticalWarnings: review.criticalWarnings,
     priceAmount: review.priceAmount ?? null,
     priceNote: review.priceNote ?? "",
+    photos: [],
+    pendingPhotoCount: review.pendingPhotos?.length ?? 0,
     visitedAt: review.visitedAt ?? review.createdAt,
     isPublic: review.isPublic,
     active: true,

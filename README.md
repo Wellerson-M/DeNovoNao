@@ -191,6 +191,7 @@ npm run dev        # frontend em http://localhost:3000 e API em http://localhost
 | `CLIENT_ORIGIN` | Origens liberadas no CORS (separadas por vírgula; aceita `*` como curinga, ex.: `https://<projeto>-*.vercel.app`) | `http://localhost:3000,http://127.0.0.1:3000` |
 | `STORAGE_MODE` | `auto` tenta o Mongo; `memory` desliga o Mongo | `auto` |
 | `JWT_SECRET` | Segredo para assinar os tokens — **troque em produção** | `change-me` |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Fotos das avaliações (Cloudinary). Vazias = sem fotos | — |
 
 **Frontend** (`frontend/.env.local`)
 

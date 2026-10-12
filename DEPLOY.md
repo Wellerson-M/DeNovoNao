@@ -27,6 +27,7 @@ Variaveis de ambiente:
 - `CLIENT_ORIGIN=<url-do-frontend>`
 - `STORAGE_MODE=auto`
 - `JWT_SECRET=<um-segredo-longo-e-aleatorio>` (obrigatório trocar; não use `change-me`)
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (fotos nas avaliações; sem elas o app funciona, só sem anexar fotos. O secret fica só no backend)
 
 Depois de publicar, voce tera uma URL parecida com:
 

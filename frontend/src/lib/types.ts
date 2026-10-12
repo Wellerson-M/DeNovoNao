@@ -24,6 +24,14 @@ export type UserRecord = {
 
 export type SyncStatus = "pending" | "syncing" | "failed";
 
+/** Foto guardada no Cloudinary; o banco só tem o endereço. */
+export type ReviewPhoto = {
+  publicId: string;
+  url: string;
+  width: number | null;
+  height: number | null;
+};
+
 export type ReviewInput = {
   placeName: string;
   locationLabel: string;
@@ -38,10 +46,15 @@ export type ReviewInput = {
   priceAmount: number | null;
   /** Texto livre sobre os valores, ex.: "X-burguer 32, chopp 18". */
   priceNote: string;
+  /** Fotos já enviadas ao Cloudinary. Opcional: a foto é um extra, não o foco. */
+  photos?: ReviewPhoto[];
 };
 
 export type ReviewRecord = ReviewInput & {
   id: string;
+  photos: ReviewPhoto[];
+  /** Fotos de uma avaliação offline que ainda vão subir junto com ela. */
+  pendingPhotoCount?: number;
   id_casal: string;
   active: boolean;
   createdByUserId?: string | null;
