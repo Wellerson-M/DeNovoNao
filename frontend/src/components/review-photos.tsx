@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { MouseEvent, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight, ImageIcon, X } from "lucide-react";
@@ -19,7 +19,18 @@ export function ReviewPhotos({
 }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const close = useCallback(() => setOpenIndex(null), []);
+  const isClosingRef = useRef(false);
+
+  // Fecha voltando UMA entrada no histórico (a que foi criada ao abrir). O toque no "X"
+  // também chegava ao fundo escuro e voltava duas vezes, saindo da página de trás.
+  const close = useCallback((event?: MouseEvent) => {
+    event?.stopPropagation();
+    if (isClosingRef.current) {
+      return;
+    }
+    isClosingRef.current = true;
+    window.history.back();
+  }, []);
   const step = useCallback(
     (delta: number) =>
       setOpenIndex((current) => (current === null ? null : (current + delta + photos.length) % photos.length)),
@@ -33,10 +44,11 @@ export function ReviewPhotos({
 
     // O "voltar" do celular fecha a foto em vez de sair da página.
     // Mantém o estado atual (ex.: telas abertas no painel admin) para não fechá-las junto.
+    isClosingRef.current = false;
     window.history.pushState({ ...window.history.state, photoViewer: true }, "");
     const handlePop = () => setOpenIndex(null);
     const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") window.history.back();
+      if (event.key === "Escape") close();
       if (event.key === "ArrowRight") step(1);
       if (event.key === "ArrowLeft") step(-1);
     };
@@ -91,7 +103,7 @@ export function ReviewPhotos({
               aria-modal="true"
               aria-label="Foto da avaliação"
               className="fixed inset-0 z-[140] flex items-center justify-center bg-black/90 p-4"
-              onClick={() => window.history.back()}
+              onClick={close}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -103,7 +115,7 @@ export function ReviewPhotos({
 
               <button
                 type="button"
-                onClick={() => window.history.back()}
+                onClick={close}
                 aria-label="Fechar"
                 className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white"
               >
