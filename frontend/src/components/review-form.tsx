@@ -3,7 +3,9 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Star } from "lucide-react";
+import { PhotoPicker } from "@/components/photo-picker";
 import { useUi } from "@/contexts/ui-context";
+import { compressPhoto } from "@/lib/photos";
 import type { ReviewInput } from "@/lib/types";
 
 const RATING_LABELS = ["", "Péssimo", "Ruim", "Ok", "Bom", "Excelente"];
@@ -77,14 +79,19 @@ function ToggleRow({
 }
 
 type ReviewFormProps = {
-  onSubmit: (value: ReviewInput) => Promise<{ mode: "online" | "offline" } | void>;
+  onSubmit: (value: ReviewInput, photos: Blob[]) => Promise<{ mode: "online" | "offline" } | void>;
 };
 
 export function ReviewForm({ onSubmit }: ReviewFormProps) {
   const { withLoader } = useUi();
-  const [form, setForm] = useState<ReviewInput>(createEmptyForm);
+  const [form, setForm] = useState<ReviewInput>(() => ({ ...createEmptyForm(), visitedAt: "" }));
+  const [today, setToday] = useState("");
   const [warningsText, setWarningsText] = useState("");
   const [priceText, setPriceText] = useState("");
+  // Fotos já comprimidas no aparelho; só sobem para o Cloudinary ao publicar.
+  const [photos, setPhotos] = useState<Array<{ key: string; blob: Blob; preview: string }>>([]);
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const messageTimer = useRef<number | null>(null);
@@ -106,14 +113,47 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
     setMessage(null);
   }, []);
 
+  // A página é pré-renderizada no build, então "hoje" chega congelado no dia do deploy
+  // (e o React não corrige atributos na hidratação). Começa vazio e preenche no aparelho.
+  useEffect(() => {
+    const now = todayLocalIso();
+    setToday(now);
+    setForm((current) => ({ ...current, visitedAt: now }));
+  }, []);
+
   useEffect(
     () => () => {
       if (messageTimer.current) {
         window.clearTimeout(messageTimer.current);
       }
+      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.preview));
     },
     []
   );
+
+  async function addPhotos(files: File[]) {
+    try {
+      const prepared = await Promise.all(
+        files.map(async (file) => {
+          const blob = await compressPhoto(file);
+          return { key: `${file.name}-${file.lastModified}-${Math.random()}`, blob, preview: URL.createObjectURL(blob) };
+        })
+      );
+      setPhotos((current) => [...current, ...prepared]);
+    } catch (error) {
+      showMessage({ tone: "error", text: error instanceof Error ? error.message : "Não foi possível abrir a foto." });
+    }
+  }
+
+  function removePhoto(key: string) {
+    setPhotos((current) => {
+      const removed = current.find((photo) => photo.key === key);
+      if (removed) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return current.filter((photo) => photo.key !== key);
+    });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,7 +173,7 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
             .split(",")
             .map((item) => item.trim())
             .filter(Boolean),
-        }),
+        }, photos.map((photo) => photo.blob)),
       );
 
       showMessage({
@@ -147,6 +187,8 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
       setForm(createEmptyForm());
       setWarningsText("");
       setPriceText("");
+      photos.forEach((photo) => URL.revokeObjectURL(photo.preview));
+      setPhotos([]);
     } catch (error) {
       showMessage({
         tone: "error",
@@ -190,7 +232,9 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
             required
             type="date"
             value={form.visitedAt}
-            max={todayLocalIso()}
+            max={today || undefined}
+            // O app pode ficar aberto de um dia para o outro.
+            onFocus={() => setToday(todayLocalIso())}
             onChange={(event) => setForm((current) => ({ ...current, visitedAt: event.target.value }))}
             className={clsx(fieldClass, "min-h-[46px]")}
           />
@@ -308,6 +352,18 @@ export function ReviewForm({ onSubmit }: ReviewFormProps) {
           </label>
         </div>
       </fieldset>
+
+      <div className="grid gap-2">
+        <span className="text-sm font-medium text-[var(--muted-strong)]">
+          Fotos <span className="font-normal text-[var(--muted)]">(opcional)</span>
+        </span>
+        <PhotoPicker
+          photos={photos.map((photo) => ({ key: photo.key, src: photo.preview }))}
+          onAdd={addPhotos}
+          onRemove={removePhoto}
+          disabled={isSubmitting}
+        />
+      </div>
 
       <ToggleRow
         title="Privado"

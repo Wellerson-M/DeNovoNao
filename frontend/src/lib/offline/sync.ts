@@ -1,5 +1,6 @@
 import { createReview } from "@/lib/api/reviews";
 import { db, type LocalQueuedReview } from "@/lib/offline/db";
+import { uploadPhotos } from "@/lib/photos";
 
 type SyncListener = () => void | Promise<void>;
 
@@ -55,7 +56,11 @@ async function runSync(token: string) {
     await db.queuedReviews.update(review.localId, { status: "syncing" });
 
     try {
-      await createReview(review, token);
+      const { localId: _localId, createdAt: _createdAt, status: _status, pendingPhotos, ...input } = review;
+      // Se as fotos subirem mas a avaliação falhar, a próxima tentativa envia de novo;
+      // no pior caso fica uma foto órfã no Cloudinary, nunca uma avaliação perdida.
+      const photos = pendingPhotos?.length ? await uploadPhotos(pendingPhotos, token) : input.photos ?? [];
+      await createReview({ ...input, photos }, token);
       await db.queuedReviews.delete(review.localId);
       await notifyListeners();
     } catch (error) {

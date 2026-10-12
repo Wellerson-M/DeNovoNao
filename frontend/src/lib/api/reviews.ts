@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/session";
-import type { ReviewInput, ReviewRecord, ReviewsResponse } from "@/lib/types";
+import type { ReviewInput, ReviewPhoto, ReviewRecord, ReviewsResponse } from "@/lib/types";
 
 type ServerReview = {
   _id: string;
@@ -16,6 +16,7 @@ type ServerReview = {
   active: boolean;
   priceAmount?: number | null;
   priceNote?: string;
+  photos?: ReviewPhoto[];
   createdByUserId?: string | null;
   createdByName?: string | null;
   publisherLabel?: string | null;
@@ -66,6 +67,7 @@ function mapReview(review: ServerReview): ReviewRecord {
     active: review.active,
     priceAmount: typeof review.priceAmount === "number" ? review.priceAmount : null,
     priceNote: typeof review.priceNote === "string" ? review.priceNote : "",
+    photos: Array.isArray(review.photos) ? review.photos : [],
     createdByUserId: typeof review.createdByUserId === "string" ? review.createdByUserId : null,
     createdByName: typeof review.createdByName === "string" ? review.createdByName : null,
     publisherLabel: typeof review.publisherLabel === "string" ? review.publisherLabel : null,
@@ -109,6 +111,29 @@ export async function fetchReviews(params: {
     items: Array.isArray(data.items) ? data.items.map(mapReview) : [],
     meta: data.meta,
   } satisfies ReviewsResponse;
+}
+
+export type PhotoSignature = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  folder: string;
+  allowed_formats: string;
+  signature: string;
+};
+
+export async function requestPhotoSignature(token: string) {
+  const response = await apiFetch(`${getApiUrl()}/reviews/photos/signature`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Não foi possível autorizar o envio da foto");
+  }
+
+  return (await response.json()) as PhotoSignature;
 }
 
 export async function createReview(input: ReviewInput, token: string) {

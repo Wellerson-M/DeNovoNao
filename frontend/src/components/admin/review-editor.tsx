@@ -1,10 +1,12 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { Star } from "lucide-react";
+import { PhotoPicker } from "@/components/photo-picker";
 import { updateReview } from "@/lib/api/reviews";
-import type { ReviewRecord } from "@/lib/types";
+import { compressPhoto, photoUrl, uploadPhotos } from "@/lib/photos";
+import type { ReviewPhoto, ReviewRecord } from "@/lib/types";
 
 const fieldClass =
   "w-full rounded-xl border border-[var(--field-border)] bg-[var(--field-bg)] px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent-soft)] focus:shadow-[0_0_0_3px_var(--accent-ring)] disabled:opacity-50";
@@ -33,12 +35,47 @@ export function ReviewEditor({
   const [priceNote, setPriceNote] = useState(review.priceNote);
   const [isPublic, setIsPublic] = useState(review.isPublic);
   const [isSaving, setIsSaving] = useState(false);
+  const [keptPhotos, setKeptPhotos] = useState<ReviewPhoto[]>(review.photos);
+  const [newPhotos, setNewPhotos] = useState<Array<{ key: string; blob: Blob; preview: string }>>([]);
+  const newPhotosRef = useRef(newPhotos);
+  newPhotosRef.current = newPhotos;
+
+  useEffect(() => () => newPhotosRef.current.forEach((photo) => URL.revokeObjectURL(photo.preview)), []);
+
+  async function addPhotos(files: File[]) {
+    try {
+      const prepared = await Promise.all(
+        files.map(async (file) => {
+          const blob = await compressPhoto(file);
+          return { key: `new-${file.name}-${Math.random()}`, blob, preview: URL.createObjectURL(blob) };
+        })
+      );
+      setNewPhotos((current) => [...current, ...prepared]);
+    } catch (error) {
+      notify("error", error instanceof Error ? error.message : "Não foi possível abrir a foto.");
+    }
+  }
+
+  function removePhoto(key: string) {
+    setKeptPhotos((current) => current.filter((photo) => photo.publicId !== key));
+    setNewPhotos((current) => {
+      const removed = current.find((photo) => photo.key === key);
+      if (removed) {
+        URL.revokeObjectURL(removed.preview);
+      }
+      return current.filter((photo) => photo.key !== key);
+    });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
 
     try {
+      // Só mexe nas fotos se algo mudou; fotos removidas são apagadas do Cloudinary pelo servidor.
+      const photosChanged = newPhotos.length > 0 || keptPhotos.length !== review.photos.length;
+      const uploaded = newPhotos.length ? await uploadPhotos(newPhotos.map((photo) => photo.blob), token) : [];
+
       await updateReview(
         review.id,
         {
@@ -54,6 +91,7 @@ export function ReviewEditor({
           priceAmount: priceText.trim() ? Number(priceText.replace(",", ".")) : null,
           priceNote: priceNote.trim(),
           isPublic,
+          ...(photosChanged ? { photos: [...keptPhotos, ...uploaded] } : {}),
         },
         token
       );
@@ -138,6 +176,19 @@ export function ReviewEditor({
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Detalhe dos valores</span>
           <input value={priceNote} onChange={(event) => setPriceNote(event.target.value)} className={fieldClass} maxLength={200} />
         </label>
+      </div>
+
+      <div className="grid gap-1.5">
+        <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Fotos</span>
+        <PhotoPicker
+          photos={[
+            ...keptPhotos.map((photo) => ({ key: photo.publicId, src: photoUrl(photo, "thumb") })),
+            ...newPhotos.map((photo) => ({ key: photo.key, src: photo.preview })),
+          ]}
+          onAdd={addPhotos}
+          onRemove={removePhoto}
+          disabled={isSaving}
+        />
       </div>
 
       <label className="flex items-center gap-2 text-sm text-[var(--text-soft)]">

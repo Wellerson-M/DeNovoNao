@@ -8,6 +8,13 @@ import { getReviewDriver } from "../data/review-store.js";
 import { escapeRegex } from "../utils/escape-regex.js";
 import { parseCreateReviewInput, parseDeleteMode, parseUpdateReviewInput } from "../utils/parse-review-input.js";
 import { recordAudit } from "../utils/audit.js";
+import {
+  createUploadSignature,
+  destroyPhotos,
+  isCloudinaryConfigured,
+  normalizePhotos,
+  photoIdsOf,
+} from "../utils/cloudinary.js";
 
 const PAGE_SIZE = 10;
 
@@ -157,6 +164,7 @@ function normalizeReviewDocument(review: Record<string, unknown>) {
         : null,
     createdByName,
     publisherLabel: createdByName,
+    photos: normalizePhotos(review.photos),
     visitedAt: review.visitedAt ?? review.createdAt,
     createdAt: review.createdAt,
     updatedAt: review.updatedAt,
@@ -367,8 +375,14 @@ export async function updateReviewController(request: Request, response: Respons
       delete patch.active;
     }
     const wasActive = review.active !== false;
+    const previousPhotoIds = photoIdsOf(review);
     Object.assign(review, patch);
     await review.save();
+
+    if (patch.photos !== undefined) {
+      const keptIds = new Set(photoIdsOf(review));
+      await destroyPhotos(previousPhotoIds.filter((photoId) => !keptIds.has(photoId)));
+    }
 
     const isRestore = patch.active === true && !wasActive;
     await recordAudit(request, {
@@ -412,6 +426,7 @@ export async function deleteReviewController(request: Request, response: Respons
 
     if (mode === "hard") {
       await Review.deleteOne({ _id: review._id });
+      await destroyPhotos(photoIdsOf(review));
       await recordAudit(request, {
         action: "review.delete",
         targetType: "review",
@@ -439,3 +454,12 @@ export async function deleteReviewController(request: Request, response: Respons
 }
 
 
+
+/** Autoriza o aparelho a enviar uma foto direto para o Cloudinary. */
+export function photoSignatureController(_request: Request, response: Response) {
+  if (!isCloudinaryConfigured()) {
+    return response.status(503).json({ message: "O envio de fotos ainda não foi configurado no servidor." });
+  }
+
+  return response.status(200).json(createUploadSignature());
+}

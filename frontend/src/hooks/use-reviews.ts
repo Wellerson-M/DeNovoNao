@@ -7,6 +7,7 @@ import { generateClientId } from "@/lib/client-id";
 import { db, deleteQueuedReview } from "@/lib/offline/db";
 import { mergeReviews } from "@/lib/offline/merge-reviews";
 import { saveReviewOffline, subscribeSync } from "@/lib/offline/sync";
+import { uploadPhotos } from "@/lib/photos";
 import type { ReviewInput, ReviewRecord, ReviewsMeta } from "@/lib/types";
 
 const EMPTY_META: ReviewsMeta = {
@@ -149,14 +150,15 @@ export function useReviews(params: {
   }, [reload]);
 
   const createOrQueueReview = useCallback(
-    async (input: ReviewInput) => {
+    async (input: ReviewInput, photoBlobs: Blob[] = []) => {
       if (!token) {
         throw new Error("Faça login para publicar avaliações");
       }
 
       if (isOnline) {
         try {
-          await createReview(input, token);
+          const photos = photoBlobs.length ? await uploadPhotos(photoBlobs, token) : [];
+          await createReview({ ...input, photos }, token);
           await reload();
           return { mode: "online" as const };
         } catch (error) {
@@ -177,6 +179,7 @@ export function useReviews(params: {
       await saveReviewOffline({
         ...input,
         localId,
+        pendingPhotos: photoBlobs,
       });
 
       return { mode: "offline" as const };

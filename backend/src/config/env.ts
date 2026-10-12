@@ -10,4 +10,10 @@ export const env = {
   // Previews de branch do Vercel (projeto de-novo-nao). Aceita "*" como curinga; vazio desativa.
   previewOrigins: process.env.PREVIEW_ORIGINS ?? "https://de-novo-*-wellerson-ms-projects.vercel.app",
   jwtSecret: process.env.JWT_SECRET ?? "change-me",
+  // Fotos das avaliações. Sem as três, o app funciona normalmente, só sem anexar fotos.
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "",
+    apiKey: process.env.CLOUDINARY_API_KEY?.trim() ?? "",
+    apiSecret: process.env.CLOUDINARY_API_SECRET?.trim() ?? "",
+  },
 };

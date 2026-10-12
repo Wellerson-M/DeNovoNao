@@ -3,6 +3,8 @@ import type { ReviewInput, SyncStatus } from "@/lib/types";
 
 export type LocalQueuedReview = ReviewInput & {
   localId: string;
+  /** Fotos já comprimidas, guardadas no aparelho até a internet voltar. */
+  pendingPhotos?: Blob[];
   createdAt: string;
   status: SyncStatus;
 };

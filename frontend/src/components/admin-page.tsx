@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatVisitDate } from "@/lib/format-visit-date";
 import Link from "next/link";
 import clsx from "clsx";
 import {
@@ -26,6 +27,7 @@ import { LogsPanel } from "@/components/admin/logs-panel";
 import { OverviewPanel } from "@/components/admin/overview-panel";
 import { TrashPanel } from "@/components/admin/trash-panel";
 import { ReviewEditor } from "@/components/admin/review-editor";
+import { ReviewPhotos } from "@/components/review-photos";
 import { UserActions } from "@/components/admin/user-actions";
 import { useAuth } from "@/hooks/use-auth";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -65,10 +67,6 @@ type ModerationGroup = {
 };
 
 const ROLE_LABELS: Record<number, string> = { 0: "Visitante", 1: "Usuário", 2: "Admin" };
-
-function formatVisitDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value));
-}
 
 /**
  * Tela cheia no celular para detalhes. Cada tela aberta empilha um item no histórico,
@@ -227,6 +225,8 @@ function ReviewDetail({
           ))}
         </div>
       ) : null}
+
+      <ReviewPhotos photos={review.photos} className="" />
 
       <div className="grid gap-2 border-t border-[var(--panel-border)] pt-4">
         {confirmHard ? (

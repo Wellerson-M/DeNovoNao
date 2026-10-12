@@ -1,3 +1,5 @@
+import { parsePhotos } from "./cloudinary.js";
+
 type ReviewBody = {
   placeName?: unknown;
   locationLabel?: unknown;
@@ -11,6 +13,7 @@ type ReviewBody = {
   active?: unknown;
   priceAmount?: unknown;
   priceNote?: unknown;
+  photos?: unknown;
 };
 
 /** Valor em reais: aceita número, "32,50" ou vazio. Recusa valor absurdo. */
@@ -88,6 +91,7 @@ export function parseCreateReviewInput(input: ReviewBody) {
     isPublic,
     priceAmount: asPrice(input.priceAmount),
     priceNote: typeof input.priceNote === "string" ? input.priceNote.trim().slice(0, 200) : "",
+    photos: parsePhotos(input.photos),
     active: true,
   };
 }
@@ -156,6 +160,10 @@ export function parseUpdateReviewInput(input: ReviewBody) {
 
   if (input.priceNote !== undefined) {
     patch.priceNote = typeof input.priceNote === "string" ? input.priceNote.trim().slice(0, 200) : "";
+  }
+
+  if (input.photos !== undefined) {
+    patch.photos = parsePhotos(input.photos);
   }
 
   // Restaurar da lixeira (o controller só permite para admin).

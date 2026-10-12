@@ -29,6 +29,8 @@ import {
 import { updateMyProfile } from "@/lib/api/auth";
 import { LogoMark, Wordmark } from "@/components/brand";
 import { ReviewForm } from "@/components/review-form";
+import { ReviewPhotos } from "@/components/review-photos";
+import { formatVisitDate } from "@/lib/format-visit-date";
 import { useAuth } from "@/hooks/use-auth";
 import { useConnection } from "@/hooks/use-connection";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -40,10 +42,6 @@ import type { PriceRange, ReviewInput, ReviewRecord } from "@/lib/types";
 type ThemeMode = "dark" | "light";
 
 const SEARCH_DEBOUNCE_MS = 350;
-
-function formatVisitedDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value));
-}
 
 function Stars({ value }: { value: number }) {
   return (
@@ -247,6 +245,8 @@ function ReviewCard({
         </div>
       ) : null}
 
+      <ReviewPhotos photos={review.photos} pendingCount={review.pendingPhotoCount} />
+
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--muted)]">
         {review.priceAmount !== null ? (
           <span className="inline-flex items-center gap-1">
@@ -258,7 +258,7 @@ function ReviewCard({
         {priceRange && priceRange.count > 1 ? (
           <span>neste lugar: {formatPriceRange(priceRange.min, priceRange.max)}</span>
         ) : null}
-        <span>Visita em {formatVisitedDate(review.visitedAt)}</span>
+        <span>Visita em {formatVisitDate(review.visitedAt)}</span>
         {review.isPublic && review.publisherLabel ? <span>Por {review.publisherLabel}</span> : null}
       </div>
     </article>
@@ -546,8 +546,8 @@ export function HomePage() {
     }
   }
 
-  async function handleSubmit(input: ReviewInput) {
-    const result = await createOrQueueReview(input);
+  async function handleSubmit(input: ReviewInput, photos: Blob[]) {
+    const result = await createOrQueueReview(input, photos);
     if (result?.mode === "online") {
       setIsComposerOpen(false);
     }

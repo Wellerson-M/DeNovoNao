@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/session";
-import type { ReviewRecord, UserRecord } from "@/lib/types";
+import type { ReviewPhoto, ReviewRecord, UserRecord } from "@/lib/types";
 
 type AdminReviewsResponse = {
   items: Array<{
@@ -17,6 +17,7 @@ type AdminReviewsResponse = {
     active: boolean;
     priceAmount?: number | null;
     priceNote?: string;
+    photos?: ReviewPhoto[];
     createdByUserId?: string | null;
     createdByName?: string | null;
     publisherLabel?: string | null;
@@ -75,6 +76,7 @@ function mapReview(review: AdminReviewsResponse["items"][number]): ReviewRecord 
     active: review.active,
     priceAmount: typeof review.priceAmount === "number" ? review.priceAmount : null,
     priceNote: typeof review.priceNote === "string" ? review.priceNote : "",
+    photos: Array.isArray(review.photos) ? review.photos : [],
     createdByUserId: typeof review.createdByUserId === "string" ? review.createdByUserId : null,
     createdByName: typeof review.createdByName === "string" ? review.createdByName : null,
     publisherLabel: typeof review.publisherLabel === "string" ? review.publisherLabel : null,

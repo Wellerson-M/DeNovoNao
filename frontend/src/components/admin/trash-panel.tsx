@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatVisitDate } from "@/lib/format-visit-date";
 import clsx from "clsx";
 import { Bike, CalendarDays, Eye, EyeOff, LoaderCircle, MapPin, RotateCcw, Star, Trash2 } from "lucide-react";
 import { deleteTrashedReview, fetchTrash, purgeOldData } from "@/lib/api/admin";
@@ -21,10 +22,6 @@ const PURGE_PERIODS = [
   { value: 90, label: "90 dias" },
   { value: 365, label: "1 ano" },
 ] as const;
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value));
-}
 
 function TrashCard({
   review,
@@ -69,7 +66,7 @@ function TrashCard({
           </span>
           <span className="flex items-center gap-1">
             <CalendarDays className="h-3.5 w-3.5" />
-            {formatDate(review.visitedAt)}
+            {formatVisitDate(review.visitedAt)}
           </span>
           {review.publisherLabel ? <span>por {review.publisherLabel}</span> : null}
         </p>

@@ -7,6 +7,7 @@ import { Review } from "../models/Review.js";
 import { getReviewDriver } from "../data/review-store.js";
 import { recordAudit } from "../utils/audit.js";
 import { escapeRegex } from "../utils/escape-regex.js";
+import { normalizePhotos } from "../utils/cloudinary.js";
 
 const PAGE_SIZE = 10;
 
@@ -124,6 +125,7 @@ function normalizeAdminReview(review: Record<string, unknown>) {
         : null,
     createdByName,
     publisherLabel: createdByName,
+    photos: normalizePhotos(review.photos),
     visitedAt: review.visitedAt ?? review.createdAt,
     createdAt: review.createdAt,
     updatedAt: review.updatedAt,
